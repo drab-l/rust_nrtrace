@@ -1,0 +1,46 @@
+#[repr(C)]
+pub struct stat {
+    pub st_dev: types::ULong,
+    pub st_ino: types::ULong,
+    pub st_mode: types::UInt,
+    pub st_nlink: types::UInt,
+    pub st_uid: types::UInt,
+    pub st_gid: types::UInt,
+    pub st_rdev: types::ULong,
+    pub __pad1: types::ULong,
+    pub st_size: types::SLong,
+    pub st_blksize: types::SInt,
+    pub __pad2: types::SInt,
+    pub st_blocks: types::SLong,
+    pub st_atime: types::SLong,
+    pub st_atime_nsec: types::ULong,
+    pub st_mtime: types::SLong,
+    pub st_mtime_nsec: types::ULong,
+    pub st_ctime: types::SLong,
+    pub st_ctime_nsec: types::ULong,
+    pub __unused4: types::SInt,
+    pub __unused5: types::SInt,
+}
+
+#[repr(C)]
+pub struct compat_stat {
+    pub st_dev: u32,
+    pub st_ino: u32,
+    pub st_mode: u16,
+    pub st_nlink: u16,
+    pub st_uid: u16,
+    pub st_gid: u16,
+    pub st_rdev: u32,
+    pub st_size: u32,
+    pub st_blksize: u32,
+    pub st_blocks: u32,
+    pub st_atime: u32,
+    pub st_atime_nsec: u32,
+    pub st_mtime: u32,
+    pub st_mtime_nsec: u32,
+    pub st_ctime: u32,
+    pub st_ctime_nsec: u32,
+    pub __unused4: u32,
+    pub __unused5: u32,
+}
+

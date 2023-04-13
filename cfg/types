@@ -1,0 +1,13 @@
+SChar:i8:i8
+UChar:u8:u8
+SShrt:i16:i16
+UShrt:u16:u16
+SInt:i32:i32
+UInt:u32:u32
+ULong:u64:u32
+SLong:i64:i32
+ULLong:u64:u64
+SLLong:i64:i64
+SSizeT:i64:i32
+USizeT:u64:u32
+Ptr:u64:u32
