@@ -1,3 +1,4 @@
+//! Wrapper for ptrace C function
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 use std::io::{Result, Error, ErrorKind};
@@ -224,52 +225,6 @@ unsafe fn peek_buf(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize)
     Ok(())
 }
 
-pub fn peek_data<T>(pid: types::Pid, addr: types::Ptr) -> Result<T> {
-    let size = std::mem::size_of::<T>();
-    let mut buf = MaybeUninit::<T>::uninit();
-    unsafe { peek_buf(pid, addr, buf.as_mut_ptr().cast::<u8>(), size)?; }
-    Ok(unsafe { buf.assume_init() })
-}
-
-pub fn peek_until_null(pid: types::Pid, addr: types::Ptr) -> Result<Vec<u8>> {
-    let mut buf = Vec::<u8>::with_capacity(PEEK_SIZE);
-    let mut addr = addr;
-    let offset = unsafe { peek_data_before(pid, addr, buf.as_mut_ptr(), buf.capacity())? };
-    if offset != 0 {
-        for i in 0..offset {
-            if buf[i] == 0 {
-                unsafe { buf.set_len(i); }
-                return Ok(buf);
-            }
-        }
-        unsafe {buf.set_len(offset); }
-        addr += offset;
-    }
-    loop {
-        let tmp = ptrace_peekdata(pid, void_ptr!(addr))?;
-        let p: *const types::SLong = &tmp;
-        let p = p.cast::<u8>();
-        for i in 0..PEEK_SIZE {
-            let v = unsafe { p.add(i).read() };
-            if v == 0 {
-                return Ok(buf);
-            }
-            buf.push(v);
-        }
-        addr += PEEK_SIZE;
-    }
-}
-
-pub fn peek_vec(pid: types::Pid, addr: types::Ptr, dst:&mut Vec<u8>, size: usize) -> Result<()> {
-    let size = std::cmp::min(size, dst.capacity());
-    unsafe {
-        let ptr = dst.as_mut_ptr();
-        peek_buf(pid, addr, ptr, size)?;
-        dst.set_len(size);
-    }
-    Ok(())
-}
-
 fn sigstop_self() -> std::io::Result<()> {
     match unsafe { c::kill(getpid(), c::SIGSTOP) } {
         -1 => Err(Error::last_os_error()),
@@ -341,13 +296,19 @@ fn is_exec_stop(status: types::SInt) -> bool {
     is_stopped_status(status) && (sig == EXECED)
 }
 
+/// Peek event types
 pub enum ChildEventKind {
+    /// Stop event for process fork/vfork/clone
     ForkStop,
+    /// Event for process exit
     ExitDone,
+    /// Stop event for process exit by signal
     SigExited,
+    /// Stop event for syscall-enter or syscall-exit
     SyscallStop,
 }
 
+/// Wait for peek event
 pub fn wait_event() -> Result<(types::Pid, ChildEventKind)> {
     loop {
         let r = waiter::wait_any();
@@ -384,34 +345,43 @@ struct SyscallArg {
     args: [u64; 6],
 }
 
-pub struct SyscallInfoEntry {
-    args: SyscallArg,
-    is64: bool
-}
-
 enum SyscallRet {
     OK(i64),
     ERR(i32),
 }
 
+/// Syscall-enter information
+pub struct SyscallInfoEntry {
+    args: SyscallArg,
+    is64: bool
+}
+
+/// Syscall-exit information
 pub struct SyscallInfoExit {
     ret: SyscallRet,
 }
 
+/// Syscall-enter or Syscall-exit information
 pub enum SyscallInfo {
     ENTRY(SyscallInfoEntry),
     EXIT(SyscallInfoExit),
 }
 
+/// Summery of syscall-enter and syscall-exit information
 pub struct SyscallSummery {
     args: SyscallArg,
     ret: Option<SyscallRet>,
     uni: arch::sys_uni::NR,
     is64: bool,
 }
+
+/// Syscall argument's number specifier
 pub enum Arg { ONE, TWO, THR, FUR, FIV, SIX }
 
 impl SyscallSummery {
+    /// Create from syscall-enter information
+    /// # Arguments
+    /// * `entry` - syscall-enter information
     pub fn new_from_entry(entry: SyscallInfoEntry) -> Self {
         let args = entry.args;
         let ret = None;
@@ -421,6 +391,9 @@ impl SyscallSummery {
         SyscallSummery{ args, ret, uni, is64 }
     }
 
+    /// Override by syscall-enter information and forget syscall-exit summery
+    /// # Arguments
+    /// * `entry` - syscall-enter information
     pub fn renew_from_entry(&mut self, entry: SyscallInfoEntry) {
         self.args = entry.args;
         self.ret = None;
@@ -428,16 +401,21 @@ impl SyscallSummery {
         self.uni = if self.is64 { arch::sys_uni::a64::to_uni(self.args.nr) } else { arch::sys_uni::a32::to_uni(self.args.nr) };
     }
 
+    /// Create dummy summery, used for socketcall etc
     pub fn new_dummy_entry(is64: bool, uni: arch::sys_uni::NR, nr: u64, args: [u64; 6], ret:i64) -> Self {
         let args = SyscallArg{nr, args};
         let ret = Some(if ret >= 0 && ret < -4096 { SyscallRet::OK(ret) } else { SyscallRet::ERR(ret as i32) });
         SyscallSummery{ args, ret, uni, is64 }
     }
 
-   pub fn add_exit(&mut self, exit: SyscallInfoExit) {
+    /// Add summery from syscall-exit information
+    /// # Arguments
+    /// * `exit` - syscall-exit information
+    pub fn add_exit(&mut self, exit: SyscallInfoExit) {
         self.ret = Some(exit.ret);
     }
 
+    /// Get raw syscall number
     pub fn sysnum(&self) -> u64 {
         self.args.nr
     }
@@ -450,6 +428,7 @@ impl SyscallSummery {
         self.ret.is_some()
     }
 
+    /// Get syscall succeeded return value
     pub fn return_value(&self) -> Result<u64> {
         match self.ret {
             Some(SyscallRet::OK(r)) => Ok(r as u64),
@@ -458,10 +437,12 @@ impl SyscallSummery {
         }
     }
 
+    /// Get raw syscall name
     pub fn sysname(&self) -> &str {
         arch::sys_uni::to_str(self.uni)
     }
 
+    /// Get common syscall name
     pub fn uni_sysnum(&self) -> arch::sys_uni::NR {
         self.uni
     }
@@ -481,7 +462,11 @@ impl SyscallSummery {
     }
 }
 
-pub fn attach_exec_child<T>(cmd: String, args: T) -> Result<types::Pid>
+/// Execute process and trace it
+/// # Arguments
+/// * `cmd` - Execute command name
+/// * `args` - Execute command's arguments
+pub fn peek_attach_exec_child<T>(cmd: String, args: T) -> Result<types::Pid>
 where
     T: Iterator<Item = String>
 {
@@ -501,11 +486,17 @@ where
     }
 }
 
-pub fn attach_running_process(pid: types::Pid) -> Result<()> {
+/// Start trace of the runnning process
+/// # Arguments
+/// * `pid` - A target process ID
+pub fn peek_attach_running_process(pid: types::Pid) -> Result<()> {
     ptrace_attach(pid)?;
     Ok(())
 }
 
+/// Get cloned/forked/vforked child process ID and restart parent process
+/// # Arguments
+/// * `pid` - Parent process ID
 pub fn treat_stopped_clone_process(parent: types::Pid) -> Result<types::Pid>
 {
     let pid = ptrace_geteventmsg_get_child_pid(parent);
@@ -514,11 +505,17 @@ pub fn treat_stopped_clone_process(parent: types::Pid) -> Result<types::Pid>
     Ok(pid)
 }
 
+/// Restart syscall-stopped target process
+/// # Arguments
+/// * `pid` - A target process ID
 pub fn cont_process(pid: types::Pid) -> Result<()> {
     ptrace_syscall(pid)
 }
 
-pub fn get_syscall_info(pid: types::Pid) -> Result<SyscallInfo> {
+/// Peek syscall info from syscall-stopped target process
+/// # Arguments
+/// * `pid` - A peek target process ID
+pub fn peek_syscall_info(pid: types::Pid) -> Result<SyscallInfo> {
     let r = ptrace_get_syscall_info(pid)?;
     unsafe {
         match r.op as types::SInt {
@@ -527,5 +524,66 @@ pub fn get_syscall_info(pid: types::Pid) -> Result<SyscallInfo> {
             _ => Err(Error::from(ErrorKind::Other)),
         }
     }
+}
+
+/// Peek specfied type's data from target process
+/// # Arguments
+/// * `pid` - A peek target process ID
+/// * `addr` - A peek target address
+pub fn peek_data<T>(pid: types::Pid, addr: types::Ptr) -> Result<T> {
+    let size = std::mem::size_of::<T>();
+    let mut buf = MaybeUninit::<T>::uninit();
+    unsafe { peek_buf(pid, addr, buf.as_mut_ptr().cast::<u8>(), size)?; }
+    Ok(unsafe { buf.assume_init() })
+}
+
+/// Peek null terminated string
+/// # Arguments
+/// * `pid` - A peek target process ID
+/// * `addr` - A peek target address
+pub fn peek_until_null(pid: types::Pid, addr: types::Ptr) -> Result<Vec<u8>> {
+    let mut buf = Vec::<u8>::with_capacity(PEEK_SIZE);
+    let mut addr = addr;
+    let offset = unsafe { peek_data_before(pid, addr, buf.as_mut_ptr(), buf.capacity())? };
+    if offset != 0 {
+        for i in 0..offset {
+            if buf[i] == 0 {
+                unsafe { buf.set_len(i); }
+                return Ok(buf);
+            }
+        }
+        unsafe { buf.set_len(offset); }
+        addr += offset;
+    }
+    loop {
+        let tmp = ptrace_peekdata(pid, void_ptr!(addr))?;
+        let p: *const types::SLong = &tmp;
+        let p = p.cast::<u8>();
+        for i in 0..PEEK_SIZE {
+            let v = unsafe { p.add(i).read() };
+            if v == 0 {
+                return Ok(buf);
+            }
+            buf.push(v);
+        }
+        addr += PEEK_SIZE;
+    }
+}
+
+/// Peek data from target process to `Vec<u8>`
+/// # Arguments
+/// * `pid` - A peek target process ID
+/// * `addr` - A peek target address
+/// * `dst` - Destination vector that capacity shall be allocated
+/// * `size` - Peek size as bytes. If larger than the dst capacity, the dst capacity size is used
+/// insted of this
+pub fn peek_vec(pid: types::Pid, addr: types::Ptr, dst:&mut Vec<u8>, size: usize) -> Result<()> {
+    let size = std::cmp::min(size, dst.capacity());
+    unsafe {
+        let ptr = dst.as_mut_ptr();
+        peek_buf(pid, addr, ptr, size)?;
+        dst.set_len(size);
+    }
+    Ok(())
 }
 

@@ -37,7 +37,7 @@ fn event_loop(printer: printer::Printer) -> Result<()> {
                 history.clear(pid);
             },
             Ok((pid, peek::ChildEventKind::SyscallStop)) => {
-                if let Ok(e) = peek::get_syscall_info(pid) {
+                if let Ok(e) = peek::peek_syscall_info(pid) {
                     if let Some(e) = history.update(pid, e) {
                         log.output(pid, e).unwrap();
                     }
@@ -81,7 +81,7 @@ impl Tracer {
     }
 
     pub fn attach_running_process(&self, pid: types::Pid) -> Result<()> {
-        peek::attach_running_process(pid)?;
+        peek::peek_attach_running_process(pid)?;
         Ok(())
     }
 
@@ -113,7 +113,7 @@ impl Tracer {
     where
         T: Iterator<Item = String>
     {
-        let pid = peek::attach_exec_child(cmd, args)?;
+        let pid = peek::peek_attach_exec_child(cmd, args)?;
         Ok(pid)
     }
 

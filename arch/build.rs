@@ -115,6 +115,7 @@ fn make_nr_inc(src: &str, dst: &str) {
         w.write(b";\n").unwrap();
     }
     w.write(b"\n").unwrap();
+    w.write(b"/// Get common syscall enum from raw syscall numer\n").unwrap();
     w.write(b"pub fn to_uni(sys: u64) -> super::NR {\nmatch sys {\n").unwrap();
     for line in BufReader::new(std::fs::File::open(src).unwrap()).lines() {
         let mut l = line.as_ref().unwrap().split(':');
@@ -131,6 +132,7 @@ fn make_nr_inc(src: &str, dst: &str) {
 
 fn make_uni_enum_inc(dst: &str, set: &BTreeSet<String>) {
     let mut w = BufWriter::new(std::fs::File::create(dst).unwrap());
+    w.write(b"/// Common syscall enum for architecture-independent\n").unwrap();
     w.write(b"#[derive(PartialEq,Copy,Clone)]pub enum NR {\n").unwrap();
     set.iter().for_each(|x|{
         w.write(b"sys_").unwrap();
@@ -142,6 +144,7 @@ fn make_uni_enum_inc(dst: &str, set: &BTreeSet<String>) {
 
 fn make_uni_to_str_inc(dst: &str, set: &BTreeSet<String>) {
     let mut w = BufWriter::new(std::fs::File::create(dst).unwrap());
+    w.write(b"/// Get syscall name\n").unwrap();
     w.write(b"pub fn to_str(sys: NR) -> &'static str {\nmatch sys {\n").unwrap();
     set.iter().for_each(|x|{
         write!(w, "NR::sys_{} => \"{}\",\n", x, x).unwrap();
@@ -151,6 +154,7 @@ fn make_uni_to_str_inc(dst: &str, set: &BTreeSet<String>) {
 
 fn make_uni_map_inc(dst: &str, set: &BTreeSet<String>) {
     let mut w = BufWriter::new(std::fs::File::create(dst).unwrap());
+    w.write(b"/// Map of common syscall enum and name, for lookup syscall by name\n").unwrap();
     write!(w, "pub const map: [(&'static str, NR);{}] = [\n", set.len()).unwrap();
     set.iter().for_each(|x|{
         write!(w, "(\"{}\", NR::sys_{}),\n", x, x).unwrap();
