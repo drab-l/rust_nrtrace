@@ -31,20 +31,33 @@ fn make_types_rs () {
     let bits= 32;
     let mut w = BufWriter::new(std::fs::File::create(path).unwrap());
 write!(w,r#"
+/// signed char
 pub type SChar = i8;
+/// unsigned char
 pub type UChar = u8;
+/// signed short
 pub type SShrt = i16;
+/// unsigned short
 pub type UShrt = u16;
+/// signed int
 pub type SInt = i32;
+/// unsigned int
 pub type UInt = u32;
+/// signed long
 pub type SLong = i{};
+/// unsigned long
 pub type ULong = u{};
+/// signed long long
 pub type SLLong = i{};
+/// unsigned long long
 pub type ULLong = u{};
 
+/// pid_t
 pub type Pid = SInt;
+/// void*
 pub type Ptr = usize;
 
+/// 64 or 32
 pub const BITS:u8 = {};
 "#, bits, bits, bits, bits, bits).unwrap();
 }

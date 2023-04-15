@@ -7,14 +7,14 @@ macro_rules! LINE { () => { println!("{}", line!()) } }
 
 mod c {
     extern "C" {
-        pub fn signal(signum: types::SInt, sighander: *const types::Func);
+        pub fn signal(signum: types::SInt, sighander: types::SigHandler);
         pub fn _exit(status: types::SInt);
     }
     pub const SIGINT: types::SInt = 2;
     pub const ESRCH: types::SInt = 3;
 }
 
-fn signal(signum: types::SInt, sighandler: *const types::Func) {
+fn signal(signum: types::SInt, sighandler: types::SigHandler) {
     unsafe { c::signal(signum, sighandler); }
 }
 
@@ -69,7 +69,7 @@ impl Tracer {
     }
 
     pub fn start(mut self) -> Result<()> {
-        signal(c::SIGINT, sighandle_exit as *const types::Func);
+        signal(c::SIGINT, sighandle_exit);
         if let Some(out) = self.out_path {
             self.printer.file(out);
         }

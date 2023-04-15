@@ -1,3 +1,6 @@
+//! C basic types for build target architecture
 include!(concat!(env!("OUT_DIR"), "/types.inc"));
+/// void
 pub type Void = std::ffi::c_void;
-pub type Func = Void;
+/// sighandler_t
+pub type SigHandler= extern fn(sig: SInt);
