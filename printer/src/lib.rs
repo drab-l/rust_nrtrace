@@ -1,3 +1,4 @@
+//! Print SyscallSummery
 #![allow(non_snake_case)]
 use arch::types::{a64, a32};
 
@@ -126,6 +127,7 @@ trait Print {
     fn total_size(&self) -> usize where Self: Sized { std::mem::size_of::<Self>() }
 }
 
+/// Module interface struct
 pub struct Printer {
     writer: logger::Logger,
     conf: config::Config,
@@ -133,13 +135,6 @@ pub struct Printer {
 }
 
 impl Printer {
-    pub fn new() -> Self {
-        let writer = logger::Logger::default();
-        let conf = config::Config::new();
-        let prv_data = config::PrivData::NONE;
-        Printer{writer, conf, prv_data}
-    }
-
     fn write(&mut self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
         self.writer.write(buf)?;
         Ok(())
@@ -719,6 +714,18 @@ impl Printer {
         }
     }
 
+    /// Create Printer strut as default value 
+    pub fn new() -> Self {
+        let writer = logger::Logger::default();
+        let conf = config::Config::new();
+        let prv_data = config::PrivData::NONE;
+        Printer{writer, conf, prv_data}
+    }
+
+    /// Output SyscallSummery to log destination
+    /// # Arguments
+    /// * `pid` - A process ID of log output target
+    /// * `e` - Syscall summery of log output target
     pub fn output(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if e.is_entry() {
             self.write_syscall_entry(pid, e)
@@ -727,34 +734,56 @@ impl Printer {
         }
     }
 
+    /// Set default value as skip output
     pub fn set_skip_for_default(&mut self) {
         self.conf.set_skip_for_default()
     }
 
+    /// Set to skip output for specified name's syscall
+    /// # Arguments
+    /// * `name` - Target syscall's name
     pub fn set_skip_by_name(&mut self, name: &str) {
         self.conf.set_skip_by_name(name)
     }
 
+    /// Set to not skip output for specified name's syscall
+    /// # Arguments
+    /// * `name` - Target syscall's name
     pub fn set_not_skip_by_name(&mut self, name: &str) {
         self.conf.set_not_skip_by_name(name)
     }
 
+    /// Set to simple format output for specified name's syscall
+    /// # Arguments
+    /// * `name` - Target syscall's name
     pub fn set_simple_by_name(&mut self, name: &str) {
         self.conf.set_simple_by_name(name)
     }
 
+    /// Set to skip output for syscall that name contain speccified
+    /// # Arguments
+    /// * `name` - Target syscall's name
     pub fn set_skip_by_include_name(&mut self, name: &str) {
         self.conf.set_skip_by_include_name(name)
     }
 
+    /// Set to not skip output for syscall that name contain speccified
+    /// # Arguments
+    /// * `name` - Target syscall's name
     pub fn set_not_skip_by_include_name(&mut self, name: &str) {
         self.conf.set_not_skip_by_include_name(name)
     }
 
+    /// Set to simple format output for syscall that name contain speccified
+    /// # Arguments
+    /// * `name` - Target syscall's name
     pub fn set_simple_by_include_name(&mut self, name: &str) {
         self.conf.set_simple_by_include_name(name)
     }
 
+    /// Set log destinaion
+    /// # Arguments
+    /// * `path` - file path for log destinaion
     pub fn file(&mut self, path: String) {
         self.writer = logger::Logger::file(path);
     }

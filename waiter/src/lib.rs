@@ -1,4 +1,4 @@
-//! wrapper for wait C function
+//! Wrapper for wait C function
 mod c {
     extern "C" {
         pub fn waitpid(pid: types::Pid, status: *mut types::SInt, options: types::SInt) -> types::Pid;
