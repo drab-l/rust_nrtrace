@@ -20,7 +20,8 @@ fn file_modified_than_file (file: &str, base: &str) -> bool {
 }
 
 fn make_types_rs () {
-    let path = "src/types.rs";
+    let out = std::env::var("OUT_DIR").unwrap();
+    let path = out + "/types.inc";
     if ! file_modified_than_file("build.rs", &path) {
         return
     }
