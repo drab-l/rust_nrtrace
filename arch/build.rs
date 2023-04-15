@@ -300,6 +300,3 @@ fn main () {
     make_header_inc(&out);
     make_uni_header_inc(&out);
 }
-//#![allow(dead_code)]
-//#![allow(non_camel_case_types)]
-//#![allow(non_upper_case_globals)]
