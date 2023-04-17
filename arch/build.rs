@@ -5,9 +5,10 @@ use std::collections::{BTreeSet, BTreeMap};
 macro_rules! LINE { () => { println!("{}", line!()) } }
 
 fn get_arch_name() -> (&'static str, &'static str) {
-    if cfg!(target_arch = "x86_64") || cfg!(target_arch = "x86") {
+    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+    if target_arch == "x86_64" || target_arch == "x86" {
         ("x86_64", "x86")
-    } else if cfg!(target_arch = "aarch64") || cfg!(target_arch = "arm") {
+    } else if target_arch == "aarch64" || target_arch == "arm" {
         ("aarch64", "arm")
     } else {
         panic!();
@@ -243,6 +244,7 @@ fn select_copy(dst: &str, src1: &str, src2: &str, e: &std::fs::DirEntry) {
     }
     spath.push(e.file_name());
     if file_modified_than_file(spath.to_str().unwrap(), dpath.to_str().unwrap()) {
+        println!("cargo:rerun-if-changed={}", spath.to_str().unwrap());
         std::fs::create_dir_all(dst).unwrap();
         std::fs::copy(spath, dpath).unwrap();
     }
@@ -252,6 +254,9 @@ fn make_header_inc(dst: &str) {
     let (a64, a32, aun) = get_header_dir_path();
     let d64 = dst.to_owned() + "/header/a64";
     let d32 = dst.to_owned() + "/header/a32";
+    println!("cargo:rerun-if-changed={}", a64);
+    println!("cargo:rerun-if-changed={}", a32);
+    println!("cargo:rerun-if-changed={}", aun);
     for h in std::fs::read_dir(&aun).unwrap() {
         let h = h.unwrap();
         if !h.file_type().unwrap().is_file() {
@@ -265,6 +270,8 @@ fn make_header_inc(dst: &str) {
 fn make_uni_header_inc(dst: &str) {
     let (a64, aun) = get_uni_header_dir_path();
     let dun = dst.to_owned() + "/uni_header";
+    println!("cargo:rerun-if-changed={}", a64);
+    println!("cargo:rerun-if-changed={}", aun);
     for h in std::fs::read_dir(&aun).unwrap() {
         let h = h.unwrap();
         if !h.file_type().unwrap().is_file() {
