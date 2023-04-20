@@ -102,6 +102,7 @@ fn load_sys_uni_list(src: &str, set: &mut BTreeSet<String>) {
         let l = line.as_ref().unwrap();
         set.insert(l.to_owned());
     }
+    println!("cargo:rerun-if-changed={}", src);
 }
 
 fn make_nr_inc(src: &str, dst: &str) {
@@ -129,6 +130,7 @@ fn make_nr_inc(src: &str, dst: &str) {
     }
     w.write(b"_ => super::NR::sys_unknown,\n").unwrap();
     w.write(b"}\n}\n").unwrap();
+    println!("cargo:rerun-if-changed={}", src);
 }
 
 fn make_uni_enum_inc(dst: &str, set: &BTreeSet<String>) {
@@ -177,9 +179,6 @@ fn make_sys_rs (dir: &str) {
     let aun = get_sys_uni_list_path();
     let (r64, r32, run) = get_nr_rs_file_path(dir);
 
-    println!("cargo:rerun-if-changed={}", a64);
-    println!("cargo:rerun-if-changed={}", a32);
-    println!("cargo:rerun-if-changed={}", aun);
 
     let w64 = ["build.rs", &a64].iter().any(|x|file_modified_than_file(x, &r64));
     let w32 = ["build.rs", &a32].iter().any(|x|file_modified_than_file(x, &r32));
@@ -213,6 +212,7 @@ fn load_types_uni_list(src: &str, b64: &mut BTreeMap<String, String>, b32: &mut 
         b64.insert(name.to_owned(), n64.to_owned());
         b32.insert(name.to_owned(), n32.to_owned());
     }
+    println!("cargo:rerun-if-changed={}", src);
 }
 
 fn load_types_list(src: &str, btm: &mut BTreeMap<String, String>) -> std::io::Result<()> {
@@ -222,6 +222,7 @@ fn load_types_list(src: &str, btm: &mut BTreeMap<String, String>) -> std::io::Re
         let n = l.next().unwrap();
         btm.insert(name.to_owned(), n.to_owned());
     }
+    println!("cargo:rerun-if-changed={}", src);
     Ok(())
 }
 
@@ -254,8 +255,6 @@ fn make_header_inc(dst: &str) {
     let (a64, a32, aun) = get_header_dir_path();
     let d64 = dst.to_owned() + "/header/a64";
     let d32 = dst.to_owned() + "/header/a32";
-    println!("cargo:rerun-if-changed={}", a64);
-    println!("cargo:rerun-if-changed={}", a32);
     println!("cargo:rerun-if-changed={}", aun);
     for h in std::fs::read_dir(&aun).unwrap() {
         let h = h.unwrap();
@@ -270,7 +269,6 @@ fn make_header_inc(dst: &str) {
 fn make_uni_header_inc(dst: &str) {
     let (a64, aun) = get_uni_header_dir_path();
     let dun = dst.to_owned() + "/uni_header";
-    println!("cargo:rerun-if-changed={}", a64);
     println!("cargo:rerun-if-changed={}", aun);
     for h in std::fs::read_dir(&aun).unwrap() {
         let h = h.unwrap();
@@ -284,10 +282,6 @@ fn make_uni_header_inc(dst: &str) {
 fn make_types_rs (dir: &str) {
     let (a64, a32, aun) = get_types_file_path();
     let (r64, r32) = get_types_rs_file_path(dir);
-
-    println!("cargo:rerun-if-changed={}", a64);
-    println!("cargo:rerun-if-changed={}", a32);
-    println!("cargo:rerun-if-changed={}", aun);
 
     let w64 = ["build.rs", &a64, &aun].iter().any(|x|file_modified_than_file(x, &r64));
     let w32 = ["build.rs", &a32, &aun].iter().any(|x|file_modified_than_file(x, &r32));
