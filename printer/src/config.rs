@@ -9,7 +9,7 @@ pub enum TYPES {
     SKIP, NONE, UNDEF,
     U8(FORMATS), I8(FORMATS), U16(FORMATS), I16(FORMATS), U32(FORMATS), I32(FORMATS), U64(FORMATS), I64(FORMATS),
     INT(FORMATS), UINT(FORMATS), ULONG(FORMATS), LONG(FORMATS), USIZE(FORMATS), SSIZE(FORMATS), PID,
-    PTR, IntPtr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
+    PTR, IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
     EpolleventPtr, EpolleventArrayPtrLenArgR, FdsetPtrArg1, IovecPtrLenArg3, IovecPtrLenArg3BufLenArgR, Linuxdirent64PtrLenArgR, MsghdrPtr, MsghdrPtrBufLenArgR,
     OldoldutsnamePtr, OldutsnamePtr, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimexPtr, TimezonePtr, UtsnamePtr,
     AsciiOrHexLenArg3, AsciiOrHexLenArgR,
@@ -171,7 +171,7 @@ define_print_info_all_fmt_type!(OFFHEX, OFFDEC, OFFOCT, LONG);
 define_print_info_all_fmt_type!(LOFFHEX, LOFFDEC, LOFFOCT, I64);
 
 define_print_info_all_fmt_type!(INTHEX_PTR, INTDEC_PTR, INTOCT_PTR, IntPtr);
-
+define_print_info_all_fmt_type!(LOFFHEX_PTR, LOFFDEC_PTR, LOFFOCT_PTR, I64Ptr);
 
 define_syscall_print_info!(UNDEFPRINT, UNDEF);
 define_syscall_print_info!(SKIPPRINT, SKIP);
@@ -193,17 +193,28 @@ define_syscall_print_info!(ACCESS, INTDEC, StrPtr, INTOCT);
 define_syscall_print_info!(ACCT, INTDEC, StrPtr);
 define_syscall_print_info!(ADD_KEY, LONGDEC, StrPtr, StrPtr, PTR, USIZEDEC, LONGDEC);
 define_syscall_print_info!(ADJTIMEX, INTDEC, PTR);
+define_syscall_print_info!(ALARM, UINTDEC, UINTDEC);
 define_syscall_print_info!(ARCH_PRCTL, LONGDEC, INTDEC, ULONGDEC);
+define_syscall_print_info!(BDFLUSH, INTDEC, INTDEC, LONGDEC);
+define_syscall_print_info!(BIND, INTDEC, INTDEC, SockaddrPtrLenArg3, INTDEC);
+define_syscall_print_info!(BPF, INTDEC, INTDEC, PTR, UINTDEC); // TODO implement bpf_attr
 define_syscall_print_info!(BRK, INTDEC, ULONGHEX);
+define_syscall_print_info!(CAPGET, INTDEC, PTR, PTR); // TODO implement args
+define_syscall_print_info!(CAPSET, INTDEC, PTR, PTR); // TODO implement args
 define_syscall_print_info!(CHDIR, INTDEC, StrPtr);
 define_syscall_print_info!(CHMOD, INTDEC, StrPtr, INTDEC, INTDEC);
 define_syscall_print_info!(CHOWN, INTDEC, StrPtr, INTOCT);
+define_syscall_print_info!(CHROOT, INTDEC, StrPtr);
+define_syscall_print_info!(CLOCK_ADJTIME, INTDEC, Clockid, PTR);
 define_syscall_print_info!(CLOCK_GETTIME, INTDEC, Clockid, PTR);
 define_syscall_print_info!(CLOCK_NANOSLEEP, INTDEC, Clockid, INTDEC, TimespecPtr, PTR);
 define_syscall_print_info!(CLOCK_SETTIME, INTDEC, Clockid, TimespecPtr);
 define_syscall_print_info!(CLONE, LONGDEC, ULONGDEC, PTR, PTR, PTR, PTR);
 define_syscall_print_info!(CLONE3, LONGDEC, PTR, USIZEDEC);
-define_syscall_print_info!(CONNECT, INTDEC, INTDEC, SockaddrPtrLenArg3, INTDEC);
+define_syscall_print_info!(CLOSE_RANGE, INTDEC, UINTDEC, UINTDEC, UINTDEC);
+define_syscall_print_info!(CREAT, INTDEC, StrPtr, INTOCT);
+define_syscall_print_info!(CREATE_MODULE, PTR, StrPtr, USIZEDEC);
+define_syscall_print_info!(COPY_FILE_RANGE, SSIZEDEC, INTDEC, LOFFDEC_PTR, INTDEC, LOFFDEC_PTR, USIZEDEC, UINTDEC);
 define_syscall_print_info!(DUP3, INTDEC, INTDEC, INTDEC, OpenFlag);
 define_syscall_print_info!(EPOLL_CTL, INTDEC, INTDEC, EpollctlOp, INTDEC, EpolleventPtr);
 define_syscall_print_info!(EPOLL_PWAIT, INTDEC, INTDEC, PTR, INTDEC, INTDEC);
@@ -285,8 +296,10 @@ define_syscall_print_info!(WRITEV, SSIZEDEC, UINTDEC, IovecPtrLenArg3, INTDEC);
 
 define_syscall_print_info_for_ret_args!(RET_ACCEPT, NONE, SockaddrPtrLenArg3Ptr, INTDEC_PTR);
 define_syscall_print_info_for_ret_args!(RET_ADJTIMEX, TimexPtr);
+define_syscall_print_info_for_ret_args!(RET_CLOCK_ADJTIME, NONE, TimexPtr);
 define_syscall_print_info_for_ret_args!(RET_CLOCK_GETTIME, NONE, TimespecPtr);
 define_syscall_print_info_for_ret_args!(RET_CLOCK_NANOSLEEP, NONE, NONE, TimespecPtr, TimespecPtr);
+define_syscall_print_info_for_ret_args!(RET_COPY_FILE_RANGE, NONE, LOFFDEC_PTR, NONE, LOFFDEC_PTR);
 define_syscall_print_info_for_ret_args!(RET_EPOLL_WAIT, NONE, EpolleventArrayPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_GETDENTS64, NONE, Linuxdirent64PtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_GETTIMEOFDAY, TimevalPtr, TimezonePtr);
@@ -320,18 +333,32 @@ impl SyscallPrinter for NR {
             NR::sys_acct => &ACCT,
             NR::sys_add_key => &ADD_KEY,
             NR::sys_adjtimex => &ADJTIMEX,
+            NR::sys_afs_syscall => &UNDEFPRINT,
+            NR::sys_alarm => &ALARM,
             NR::sys_arch_prctl => &ARCH_PRCTL,
-            NR::sys_bind | NR::sys_connect => &CONNECT,
+            NR::sys_arch_specific_syscall => &UNDEFPRINT,
+            NR::sys_arm_fadvise64_64 => &UNDEFPRINT,
+            NR::sys_bdflush => &BDFLUSH,
+            NR::sys_bind | NR::sys_connect => &BIND,
+            NR::sys_bpf => &BPF,
             NR::sys_brk => &BRK,
+            NR::sys_capget => &CAPGET,
+            NR::sys_capset => &CAPSET,
             NR::sys_chdir => &CHDIR,
             NR::sys_chmod => &CHMOD,
             NR::sys_chown | NR::sys_lchown => &CHOWN,
+            NR::sys_chroot => &CHROOT,
+            NR::sys_clock_adjtime => &CLOCK_ADJTIME,
             NR::sys_clock_getres | NR::sys_clock_getres_time64 | NR::sys_clock_gettime | NR::sys_clock_gettime64  => &CLOCK_GETTIME,
             NR::sys_clock_nanosleep => &CLOCK_NANOSLEEP,
             NR::sys_clock_settime | NR::sys_clock_settime64 => &CLOCK_SETTIME,
             NR::sys_clone => &CLONE,
             NR::sys_clone3 => &CLONE3,
             NR::sys_close => &SYS_ALIAS_INTDEC_INTDEC,
+            NR::sys_close_range => &CLOSE_RANGE,
+            NR::sys_copy_file_range => &COPY_FILE_RANGE,
+            NR::sys_creat => &CREAT,
+            NR::sys_create_module => &CREATE_MODULE,
             NR::sys_dup => &SYS_ALIAS_INTDEC_INTDEC,
             NR::sys_dup2 => &SYS_ALIAS_INTDEC_INTDEC_INTDEC,
             NR::sys_dup3 => &DUP3,
@@ -418,8 +445,10 @@ impl SyscallPrinter for NR {
         match self {
             NR::sys_accept | NR::sys_accept4 => &RET_ACCEPT,
             NR::sys_adjtimex => &RET_ADJTIMEX,
+            NR::sys_clock_adjtime => &RET_CLOCK_ADJTIME,
             NR::sys_clock_gettime | NR::sys_clock_gettime64 | NR::sys_clock_getres | NR::sys_clock_getres_time64 => &RET_CLOCK_GETTIME,
             NR::sys_clock_nanosleep => &RET_CLOCK_NANOSLEEP,
+            NR::sys_copy_file_range => &RET_COPY_FILE_RANGE,
             NR::sys_epoll_wait | NR::sys_epoll_pwait => &RET_EPOLL_WAIT,
             NR::sys_getdents64 => &RET_GETDENTS64,
             NR::sys_gettimeofday => &RET_GETTIMEOFDAY,

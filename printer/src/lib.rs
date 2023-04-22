@@ -535,6 +535,8 @@ impl Printer {
             TYPES::PTR => { print_bit_pointer!(self, value, e) },
 
             TYPES::IntPtr(fmt) => { peek_print_bit_number!(self, value as types::Ptr, SInt, fmt, pid, e) },
+            TYPES::I64Ptr(fmt) => { peek_print_number!(self, value as types::Ptr, i64, fmt, pid, e) },
+
             TYPES::StrPtr => { self.peek_write_str_null_sentinel(value as types::Ptr, pid, e) },
             TYPES::StrPtrLenArgR => { self.peek_write(value as types::Ptr, e.return_value()? as usize, pid, e) },
             TYPES::ArgsPtr => { self.peek_write_execve_str_args(value as types::Ptr, pid, e) },
