@@ -11,7 +11,7 @@ pub enum TYPES {
     INT(FORMATS), UINT(FORMATS), ULONG(FORMATS), LONG(FORMATS), USIZE(FORMATS), SSIZE(FORMATS), PID,
     PTR, IntPtr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
     EpolleventPtr, EpolleventArrayPtrLenArgR, FdsetPtrArg1, IovecPtrLenArg3, IovecPtrLenArg3BufLenArgR, Linuxdirent64PtrLenArgR, MsghdrPtr, MsghdrPtrBufLenArgR,
-    OldoldutsnamePtr, OldutsnamePtr, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimezonePtr, UtsnamePtr,
+    OldoldutsnamePtr, OldutsnamePtr, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimexPtr, TimezonePtr, UtsnamePtr,
     AsciiOrHexLenArg3, AsciiOrHexLenArgR,
     AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall, SocketcallArg }
 
@@ -190,6 +190,9 @@ define_syscall_print_info!(SYS_ALIAS_INTDEC_INTDEC_INTDEC, INTDEC, INTDEC, INTDE
 define_syscall_print_info!(ACCEPT, INTDEC, INTDEC, PTR, INTDEC_PTR);
 define_syscall_print_info!(ACCEPT4, INTDEC, INTDEC, PTR, INTDEC_PTR, SocketFlag);
 define_syscall_print_info!(ACCESS, INTDEC, StrPtr, INTOCT);
+define_syscall_print_info!(ACCT, INTDEC, StrPtr);
+define_syscall_print_info!(ADD_KEY, LONGDEC, StrPtr, StrPtr, PTR, USIZEDEC, LONGDEC);
+define_syscall_print_info!(ADJTIMEX, INTDEC, PTR);
 define_syscall_print_info!(ARCH_PRCTL, LONGDEC, INTDEC, ULONGDEC);
 define_syscall_print_info!(BRK, INTDEC, ULONGHEX);
 define_syscall_print_info!(CHDIR, INTDEC, StrPtr);
@@ -281,6 +284,7 @@ define_syscall_print_info!(WRITE, SSIZEDEC, INTDEC, AsciiOrHexLenArg3, USIZEDEC)
 define_syscall_print_info!(WRITEV, SSIZEDEC, UINTDEC, IovecPtrLenArg3, INTDEC);
 
 define_syscall_print_info_for_ret_args!(RET_ACCEPT, NONE, SockaddrPtrLenArg3Ptr, INTDEC_PTR);
+define_syscall_print_info_for_ret_args!(RET_ADJTIMEX, TimexPtr);
 define_syscall_print_info_for_ret_args!(RET_CLOCK_GETTIME, NONE, TimespecPtr);
 define_syscall_print_info_for_ret_args!(RET_CLOCK_NANOSLEEP, NONE, NONE, TimespecPtr, TimespecPtr);
 define_syscall_print_info_for_ret_args!(RET_EPOLL_WAIT, NONE, EpolleventArrayPtrLenArgR);
@@ -313,13 +317,16 @@ impl SyscallPrinter for NR {
             NR::sys_accept => &ACCEPT,
             NR::sys_accept4 => &ACCEPT4,
             NR::sys_access => &ACCESS,
+            NR::sys_acct => &ACCT,
+            NR::sys_add_key => &ADD_KEY,
+            NR::sys_adjtimex => &ADJTIMEX,
             NR::sys_arch_prctl => &ARCH_PRCTL,
             NR::sys_bind | NR::sys_connect => &CONNECT,
             NR::sys_brk => &BRK,
             NR::sys_chdir => &CHDIR,
             NR::sys_chmod => &CHMOD,
             NR::sys_chown | NR::sys_lchown => &CHOWN,
-            NR::sys_clock_gettime | NR::sys_clock_gettime64 | NR::sys_clock_getres | NR::sys_clock_getres_time64 => &CLOCK_GETTIME,
+            NR::sys_clock_getres | NR::sys_clock_getres_time64 | NR::sys_clock_gettime | NR::sys_clock_gettime64  => &CLOCK_GETTIME,
             NR::sys_clock_nanosleep => &CLOCK_NANOSLEEP,
             NR::sys_clock_settime | NR::sys_clock_settime64 => &CLOCK_SETTIME,
             NR::sys_clone => &CLONE,
@@ -410,6 +417,7 @@ impl SyscallPrinter for NR {
     fn get_print_info_for_ret_args(&self) -> &'static SyscallPrintInfoSet {
         match self {
             NR::sys_accept | NR::sys_accept4 => &RET_ACCEPT,
+            NR::sys_adjtimex => &RET_ADJTIMEX,
             NR::sys_clock_gettime | NR::sys_clock_gettime64 | NR::sys_clock_getres | NR::sys_clock_getres_time64 => &RET_CLOCK_GETTIME,
             NR::sys_clock_nanosleep => &RET_CLOCK_NANOSLEEP,
             NR::sys_epoll_wait | NR::sys_epoll_pwait => &RET_EPOLL_WAIT,

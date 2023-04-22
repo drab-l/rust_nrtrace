@@ -599,6 +599,7 @@ impl Printer {
             TYPES::StatxPtr => { peek_write_struct!(self, value, stat::statx, pid, e) },
             TYPES::SysinfoPtr => { peek_write_bit_struct!(self, value, sys::sysinfo, sys::compat_sysinfo, pid, e) },
             TYPES::TimespecPtr => { peek_write_struct!(self, value, time::kernel_timespec, pid, e) },
+            TYPES::TimexPtr => { peek_write_struct!(self, value, time::timex, pid, e) },
             TYPES::TimevalPtr => { peek_write_bit_struct!(self, value, time::timeval, time::compat_timeval, pid, e) },
             TYPES::TimezonePtr => { peek_write_struct!(self, value, time::timezone, pid, e) },
             TYPES::UtsnamePtr => { peek_write_struct!(self, value, uname::new_utsname, pid, e) },
