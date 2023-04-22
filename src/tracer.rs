@@ -11,7 +11,6 @@ mod c {
         pub fn _exit(status: types::SInt);
     }
     pub const SIGINT: types::SInt = 2;
-    pub const ESRCH: types::SInt = 3;
 }
 
 fn signal(signum: types::SInt, sighandler: types::SigHandler) {
@@ -39,13 +38,7 @@ fn event_loop(printer: printer::Printer) -> Result<()> {
             Ok((pid, peek::ChildEventKind::SyscallStop)) => {
                 if let Ok(e) = peek::peek_syscall_info(pid) {
                     if let Some(e) = history.update(pid, e) {
-                        log.output(pid, e).unwrap();
-                    }
-                }
-                if let Err(e) = peek::cont_process(pid) {
-                    match e.raw_os_error() {
-                        Some(r) => if r as types::SInt != c::ESRCH { break; }
-                        _ => (),
+                        log.output_and_cont(pid, e).unwrap();
                     }
                 }
             },

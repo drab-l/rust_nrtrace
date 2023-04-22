@@ -547,8 +547,8 @@ impl Printer {
 
             TYPES::AccessatFlag => { open::write_accessat_flags(self, value, e) },
             TYPES::AtFlag => { open::write_at_flags(self, value, e) },
-            TYPES::AsciiOrHexLenArg3 => { self.peek_write_maybe_ascii_str(value as types::Ptr, e.argn(peek::Arg::THR) as usize, pid, e) },
-            TYPES::AsciiOrHexLenArgR => {
+            TYPES::AsciiOrHexPtrLenArg3 => { self.peek_write_maybe_ascii_str(value as types::Ptr, e.argn(peek::Arg::THR) as usize, pid, e) },
+            TYPES::AsciiOrHexPtrLenArgR => {
                 match e.return_value() {
                     Ok(r) => self.peek_write_maybe_ascii_str(value as types::Ptr, r as usize, pid, e),
                     _ => Ok(())
@@ -594,7 +594,7 @@ impl Printer {
             TYPES::SocketFlag => { socket::write_flag(self, value, e) },
             TYPES::SocketType => { socket::write_type(self, value, e) },
             TYPES::SocketcallCall => { socket::write_socketcall_call(self, value, e) },
-            TYPES::SocketcallArg => { socket::write_socketcall_arg(self, value, pid, e) },
+            TYPES::SocketcallArgPtr => { socket::write_socketcall_arg(self, value, pid, e) },
             TYPES::StatfsPtr => { peek_write_bit_struct!(self, value, statfs::statfs, statfs::compat_statfs, pid, e) },
             TYPES::Statfs64Ptr => { peek_write_bit_struct!(self, value, statfs::statfs64, statfs::compat_statfs64, pid, e) },
             TYPES::StatPtr => { peek_write_bit_struct!(self, value, stat::stat, stat::compat_stat, pid, e) },
@@ -665,6 +665,10 @@ impl Printer {
         Ok(())
     }
 
+    fn is_need_peek_for_write_ret_args(&mut self, _pid: types::Pid, e: &peek::SyscallSummery) -> bool {
+        self.conf.get_print_info_for_ret_args(e.uni_sysnum()).args.iter().any(|x|x.is_need_peek())
+    }
+
     fn write_ret_args(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         match self.conf.get_print_info_for_ret_args(e.uni_sysnum()) {
             p if p.is_skip() => Ok(()),
@@ -679,6 +683,7 @@ impl Printer {
             _ => self.write(b"?"),
         }
     }
+
     fn write_ret(&mut self, print: &config::SyscallPrintInfoSet, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write_exit_header(pid, e)?;
         match e.return_value() {
@@ -692,27 +697,55 @@ impl Printer {
         }
         self.flush_line()
     }
-    fn write_syscall_exit(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+
+    fn write_syscall_exit_and_cont(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         match self.conf.get_print_info(e.uni_sysnum()) {
-            p if p.is_skip() => Ok(()),
-            p => self.write_ret(p, pid, e),
+            p if p.is_skip() => {
+                let _r = peek::cont_process(pid);
+                Ok(())
+            },
+            p => {
+                if self.is_need_peek_for_write_ret_args(pid, e) {
+                    let r = self.write_ret(p, pid, e);
+                    let _r = peek::cont_process(pid);
+                    r
+                } else {
+                    let _r = peek::cont_process(pid);
+                    self.write_ret(p, pid, e)
+                }
+            }
         }
     }
 
-    fn write_syscall_entry(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_syscall_args(&mut self, print: &config::SyscallPrintInfoSet, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+        self.write_entry_header(pid, e)?;
+        self.write(b"(")?;
+        self.write_args_impl(print, pid, e)?;
+        self.write(b")")?;
+        self.flush_line()?;
+        Ok(())
+    }
+
+    fn write_syscall_entry_and_cont(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         match self.conf.get_print_info(e.uni_sysnum()) {
-            p if p.is_skip() => Ok(()),
+            p if p.is_skip() => {
+                peek::cont_process(pid)
+            },
             p if p.is_undef() => {
+                let _r = peek::cont_process(pid);
                 self.write_entry_header(pid, e)?;
                 self.dump_args(e)?;
                 self.flush_line()
             },
             p  => {
-                self.write_entry_header(pid, e)?;
-                self.write(b"(")?;
-                self.write_args_impl(p, pid, e)?;
-                self.write(b")")?;
-                self.flush_line()
+                if p.args.iter().any(|x|x.is_need_peek()) {
+                    let r = self.write_syscall_args(&p, pid, e);
+                    let _r = peek::cont_process(pid);
+                    r
+                } else {
+                    let _r = peek::cont_process(pid);
+                    self.write_syscall_args(&p, pid, e)
+                }
             },
         }
     }
@@ -729,11 +762,11 @@ impl Printer {
     /// # Arguments
     /// * `pid` - A process ID of log output target
     /// * `e` - Syscall summery of log output target
-    pub fn output(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    pub fn output_and_cont(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if e.is_entry() {
-            self.write_syscall_entry(pid, e)
+            self.write_syscall_entry_and_cont(pid, e)
         } else  {
-            self.write_syscall_exit(pid, e)
+            self.write_syscall_exit_and_cont(pid, e)
         }
     }
 

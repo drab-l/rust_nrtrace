@@ -9,12 +9,27 @@ pub enum TYPES {
     SKIP, NONE, UNDEF,
     U8(FORMATS), I8(FORMATS), U16(FORMATS), I16(FORMATS), U32(FORMATS), I32(FORMATS), U64(FORMATS), I64(FORMATS),
     INT(FORMATS), UINT(FORMATS), ULONG(FORMATS), LONG(FORMATS), USIZE(FORMATS), SSIZE(FORMATS), PID,
-    PTR, IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
+    AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall,
+    PTR,
+    IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
     EpolleventPtr, EpolleventArrayPtrLenArgR, FdsetPtrArg1, IovecPtrLenArg3, IovecPtrLenArg3BufLenArgR, Linuxdirent64PtrLenArgR, MsghdrPtr, MsghdrPtrBufLenArgR,
-    OldoldutsnamePtr, OldutsnamePtr, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimexPtr, TimezonePtr, UtsnamePtr,
-    AsciiOrHexLenArg3, AsciiOrHexLenArgR,
-    AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall, SocketcallArg }
+    OldoldutsnamePtr, OldutsnamePtr, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, SocketcallArgPtr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimexPtr, TimezonePtr, UtsnamePtr,
+    AsciiOrHexPtrLenArg3, AsciiOrHexPtrLenArgR,
+}
 
+impl TYPES {
+    pub fn is_need_peek(&self) -> bool {
+        match self {
+            SKIP | NONE | UNDEF |
+            U8(_) | I8(_) | U16(_) | I16(_) | U32(_) | I32(_) | U64(_) | I64(_) |
+            INT(_) | UINT(_) | ULONG(_) | LONG(_) | USIZE(_) | SSIZE(_) | PID |
+            AccessatFlag | AtFlag | Clockid | DirFd | EpollctlOp | FdFlag | IoctlReqest | LseekWhence | MadviseAdvice | MmapFlag | MmapProt | NewfstatatFlag | OpenFlag | RenameFlag | RlimitResource | SendFlag | SocketDomain | SocketFlag | SocketType | SocketcallCall |
+            PTR
+            => false,
+            _ => true,
+        }
+    }
+}
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum FORMATS { HEX, DEC, OCT }
 
@@ -260,10 +275,10 @@ define_syscall_print_info!(PREAD64, SSIZEDEC, UINTDEC, PTR, USIZEDEC, LOFFDEC);
 define_syscall_print_info!(PREADV, SSIZEDEC, UINTDEC, PTR, INTDEC, OFFDEC);
 define_syscall_print_info!(PREADV2, SSIZEDEC, UINTDEC, PTR, INTDEC, OFFDEC, INTDEC);
 define_syscall_print_info!(PSELECT, INTDEC, INTDEC, FdsetPtrArg1, FdsetPtrArg1, FdsetPtrArg1, TimespecPtr, PTR);
-define_syscall_print_info!(PWRITE, SSIZEDEC, INTDEC, AsciiOrHexLenArg3, USIZEDEC, OFFDEC);
-define_syscall_print_info!(PWRITE64, SSIZEDEC, INTDEC, AsciiOrHexLenArg3, USIZEDEC, LOFFDEC);
-define_syscall_print_info!(PWRITEV, SSIZEDEC, INTDEC, AsciiOrHexLenArg3, USIZEDEC, OFFDEC);
-define_syscall_print_info!(PWRITEV2, SSIZEDEC, INTDEC, AsciiOrHexLenArg3, USIZEDEC, OFFDEC, INTDEC);
+define_syscall_print_info!(PWRITE, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
+define_syscall_print_info!(PWRITE64, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, LOFFDEC);
+define_syscall_print_info!(PWRITEV, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
+define_syscall_print_info!(PWRITEV2, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC, INTDEC);
 define_syscall_print_info!(READ, SSIZEDEC, UINTDEC, PTR, USIZEDEC);
 define_syscall_print_info!(READLINK, INTDEC, StrPtr, PTR, USIZEDEC);
 define_syscall_print_info!(READLINKAT, DirFd, INTDEC, StrPtr, PTR, USIZEDEC);
@@ -283,7 +298,7 @@ define_syscall_print_info!(SET_TID_ADDRESS, LONGDEC, PTR);
 define_syscall_print_info!(SETTIMEOFDAY, INTDEC, TimevalPtr, TimezonePtr);
 define_syscall_print_info!(SIGALTSTACK, INTDEC, PTR, PTR);
 define_syscall_print_info!(SOCKET, INTDEC, SocketDomain, SocketType, INTDEC);
-define_syscall_print_info!(SOCKETCALL, INTDEC, SocketcallCall, SocketcallArg);
+define_syscall_print_info!(SOCKETCALL, INTDEC, SocketcallCall, SocketcallArgPtr);
 define_syscall_print_info!(STATFS, INTDEC, StrPtr, PTR);
 define_syscall_print_info!(STATFS64, INTDEC, StrPtr, USIZEDEC, PTR);
 define_syscall_print_info!(STATX, INTDEC, INTDEC, StrPtr, INTDEC, INTDEC, PTR);
@@ -291,7 +306,7 @@ define_syscall_print_info!(SYSINFO, INTDEC, PTR);
 define_syscall_print_info!(UGETRLIMIT, INTDEC, RlimitResource, PTR);
 define_syscall_print_info!(UNAME, INTDEC, PTR);
 define_syscall_print_info!(WAIT4, PID, PID, PTR, INTDEC, PTR);
-define_syscall_print_info!(WRITE, SSIZEDEC, INTDEC, AsciiOrHexLenArg3, USIZEDEC);
+define_syscall_print_info!(WRITE, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC);
 define_syscall_print_info!(WRITEV, SSIZEDEC, UINTDEC, IovecPtrLenArg3, INTDEC);
 
 define_syscall_print_info_for_ret_args!(RET_ACCEPT, NONE, SockaddrPtrLenArg3Ptr, INTDEC_PTR);
@@ -308,7 +323,7 @@ define_syscall_print_info_for_ret_args!(RET_NEWFSTATAT, NONE, NONE, StatPtr);
 define_syscall_print_info_for_ret_args!(RET_OLDOLDUNAME, OldoldutsnamePtr);
 define_syscall_print_info_for_ret_args!(RET_OLDUNAME, OldutsnamePtr);
 define_syscall_print_info_for_ret_args!(RET_PIPE, IntArrayPtrLen2);
-define_syscall_print_info_for_ret_args!(RET_READ, NONE, AsciiOrHexLenArgR);
+define_syscall_print_info_for_ret_args!(RET_READ, NONE, AsciiOrHexPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_READLINK, NONE, StrPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_READLINKAT, NONE, NONE, StrPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_READV, NONE, IovecPtrLenArg3BufLenArgR);
