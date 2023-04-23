@@ -173,7 +173,7 @@ fn ptrace_get_syscall_info(pid: types::Pid) -> Result<ptrace_syscall_info> {
     Ok(unsafe { r.assume_init() })
 }
 
-unsafe fn peek_rreadv(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<usize> {
+unsafe fn peek_readv(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<usize> {
     let local = c::iovec{iov_base: dst.cast::<types::Void>(), iov_len: size};
     let remote = c::iovec{iov_base: addr as *mut types::Void, iov_len: size};
     match c::process_vm_readv(pid, &local, 1, &remote, 1, 0) {
@@ -183,7 +183,7 @@ unsafe fn peek_rreadv(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usi
 }
 
 unsafe fn peek_buf(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<usize> {
-    Ok(peek_rreadv(pid, addr, dst, size).unwrap())
+    Ok(peek_readv(pid, addr, dst, size).unwrap())
 }
 
 fn sigstop_self() -> std::io::Result<()> {
@@ -512,6 +512,8 @@ pub fn peek_until_null(pid: types::Pid, addr: types::Ptr) -> Result<Vec<u8>> {
             let len = peek_buf(pid, addr, buf.as_mut_ptr(), buf.capacity())?;
             buf.set_len(len);
         }
+        let error = buf.len() != buf.capacity();
+        addr += buf.len();
         if let Some(len) = buf.iter().position(|x| *x == 0) {
             buf.truncate(len);
             res.append(&mut buf);
@@ -519,7 +521,7 @@ pub fn peek_until_null(pid: types::Pid, addr: types::Ptr) -> Result<Vec<u8>> {
         } else {
             res.append(&mut buf);
         }
-        addr += buf.capacity();
+        if error { break; }
     }
     Ok(res)
 }
