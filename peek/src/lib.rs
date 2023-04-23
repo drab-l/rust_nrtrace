@@ -7,17 +7,23 @@ use std::mem::MaybeUninit;
 #[allow(unused_macros)]
 macro_rules! LINE { () => { eprintln!("{}", line!()) } }
 
+
 mod c {
     extern "C" {
         pub fn ptrace(request: types::SInt, pid: types::Pid, addr: *mut types::Void, data: *mut types::Void) -> types::SLong;
         pub fn getpid() -> types::Pid;
         pub fn fork() -> types::Pid;
         pub fn kill(pid: types::Pid, sig: types::SInt) -> types::SInt;
-        #[allow(dead_code)]
-        #[cfg_attr(any(target_os = "linux"), link_name = "__errno_location")]
-        #[cfg_attr(any(target_os = "android"), link_name = "__errno")]
-        pub fn errno_ptr() -> *mut types::SInt;
+        pub fn process_vm_readv(pid: types::Pid, dst: *const iovec, dstcnt: types::ULong,
+                                src: *const iovec, srccnt: types::ULong, flags: types::UInt) -> types::SSizeT;
     }
+
+    #[repr(C)]#[allow(non_camel_case_types)]
+    pub struct iovec {
+        pub iov_base: *mut types::Void,
+        pub iov_len: types::USizeT,
+    }
+
     pub const ECHILD: types::SInt = 10;
     pub const SIGTRAP: types::SInt = 5;
     pub const SIGCONT: types::SInt = 18;
@@ -85,14 +91,6 @@ fn ptrace(request: types::SInt, pid: types::Pid, addr: *mut types::Void, data: *
     match unsafe { c::ptrace(request, pid, addr, data) } {
         -1 => Err(Error::last_os_error()),
         _ => Ok(()),
-    }
-}
-
-fn ptrace_errno_check(request: types::SInt, pid: types::Pid, addr: *mut types::Void, data: *mut types::Void) -> Result<types::SLong> {
-    unsafe { *c::errno_ptr() = 0 as types::SInt; }
-    match unsafe { c::ptrace(request, pid, addr, data) } {
-        -1 => if unsafe { *c::errno_ptr() != 0 } { Err(Error::last_os_error()) } else { Ok(-1) },
-        r => Ok(r),
     }
 }
 
@@ -175,54 +173,17 @@ fn ptrace_get_syscall_info(pid: types::Pid) -> Result<ptrace_syscall_info> {
     Ok(unsafe { r.assume_init() })
 }
 
-const PEEK_SIZE: usize = std::mem::size_of::<types::SLong>() as usize;
-fn ptrace_peekdata(pid: types::Pid, addr: *mut types::Void) -> Result<types::SLong> {
-    Ok(ptrace_errno_check(c::PTRACE_PEEKDATA, pid, void_ptr!(addr), NULL!()).unwrap())
-}
-
-unsafe fn memcpy(src: *const u8, dst: *mut u8, size: usize) {
-    std::ptr::copy_nonoverlapping(src, dst, size)
-}
-
-unsafe fn peek_data_before(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<usize> {
-    let peek = PEEK_SIZE;
-    let offset = addr & peek;
-    if offset == 0 {
-        Ok(0)
-    } else {
-        let remain = peek - offset;
-        let addr = addr - offset;
-        let tmp = ptrace_peekdata(pid, void_ptr!(addr))?;
-        let p: *const types::SLong = &tmp;
-        let min = std::cmp::min(size, remain);
-        memcpy(p.cast::<u8>().add(peek - offset), dst, min);
-        Ok(min)
+unsafe fn peek_rreadv(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<usize> {
+    let local = c::iovec{iov_base: dst.cast::<types::Void>(), iov_len: size};
+    let remote = c::iovec{iov_base: addr as *mut types::Void, iov_len: size};
+    match c::process_vm_readv(pid, &local, 1, &remote, 1, 0) {
+        res if res < 0 => Err(Error::last_os_error()),
+        res => Ok(res as usize),
     }
 }
 
-unsafe fn peek_buf(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<()> {
-    let peek = PEEK_SIZE;
-    let mut size = size;
-    let mut addr = addr;
-    let mut dst = dst;
-    match peek_data_before(pid, addr, dst, size)? {
-        0 => (),
-        s => {
-            dst = dst.add(s);
-            addr += s;
-            size -= s;
-        }
-    }
-    while size > 0 {
-        let tmp = ptrace_peekdata(pid, void_ptr!(addr))?;
-        let p: *const types::SLong = &tmp;
-        let min = std::cmp::min(size, peek);
-        memcpy(p.cast::<u8>(), dst, min);
-        dst = dst.add(min);
-        addr += min;
-        size -= min;
-    }
-    Ok(())
+unsafe fn peek_buf(pid: types::Pid, addr: types::Ptr, dst: *mut u8, size: usize) -> Result<usize> {
+    Ok(peek_rreadv(pid, addr, dst, size).unwrap())
 }
 
 fn sigstop_self() -> std::io::Result<()> {
@@ -542,32 +503,25 @@ pub fn peek_data<T>(pid: types::Pid, addr: types::Ptr) -> Result<T> {
 /// * `pid` - A peek target process ID
 /// * `addr` - A peek target address
 pub fn peek_until_null(pid: types::Pid, addr: types::Ptr) -> Result<Vec<u8>> {
-    let mut buf = Vec::<u8>::with_capacity(PEEK_SIZE);
     let mut addr = addr;
-    let offset = unsafe { peek_data_before(pid, addr, buf.as_mut_ptr(), buf.capacity())? };
-    if offset != 0 {
-        for i in 0..offset {
-            if buf[i] == 0 {
-                unsafe { buf.set_len(i); }
-                return Ok(buf);
-            }
-        }
-        unsafe { buf.set_len(offset); }
-        addr += offset;
-    }
+    let mut res = vec![];
     loop {
-        let tmp = ptrace_peekdata(pid, void_ptr!(addr))?;
-        let p: *const types::SLong = &tmp;
-        let p = p.cast::<u8>();
-        for i in 0..PEEK_SIZE {
-            let v = unsafe { p.add(i).read() };
-            if v == 0 {
-                return Ok(buf);
-            }
-            buf.push(v);
+        const PEEK_SIZE: usize = 32;
+        let mut buf = Vec::<u8>::with_capacity(PEEK_SIZE);
+        unsafe {
+            let len = peek_buf(pid, addr, buf.as_mut_ptr(), buf.capacity())?;
+            buf.set_len(len);
         }
-        addr += PEEK_SIZE;
+        if let Some(len) = buf.iter().position(|x| *x == 0) {
+            buf.truncate(len);
+            res.append(&mut buf);
+            break
+        } else {
+            res.append(&mut buf);
+        }
+        addr += buf.capacity();
     }
+    Ok(res)
 }
 
 /// Peek data from target process to `Vec<u8>`

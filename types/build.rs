@@ -57,6 +57,11 @@ pub type Pid = SInt;
 /// void*
 pub type Ptr = usize;
 
+/// size_t
+pub type SSizeT = isize;
+/// unsigned long
+pub type USizeT = usize;
+
 /// 64 or 32
 pub const BITS:u8 = {};
 "#, bits, bits, bits, bits, bits).unwrap();

@@ -6,8 +6,10 @@ mod history;
 macro_rules! LINE { () => { println!("{}", line!()) } }
 
 mod c {
+    use types::SigHandler;
+
     extern "C" {
-        pub fn signal(signum: types::SInt, sighander: types::SigHandler);
+        pub fn signal(signum: types::SInt, sighander: types::SigHandler) -> SigHandler;
         pub fn _exit(status: types::SInt);
     }
     pub const SIGINT: types::SInt = 2;
