@@ -154,6 +154,10 @@ fn ptrace_listen(pid: types::Pid) -> Result<()> {
     ptrace2(c::PTRACE_LISTEN, pid)
 }
 
+fn ptrace_interrupt(pid: types::Pid) -> Result<()> {
+    ptrace2(c::PTRACE_INTERRUPT, pid)
+}
+
 fn ptrace_geteventmsg_get_child_pid(parent: types::Pid) -> Result<types::Pid> {
     let mut pid = MaybeUninit::<types::ULong>::uninit();
     ptrace(c::PTRACE_GETEVENTMSG, parent, NULL!(), void_ptr!(pid.as_mut_ptr()))?;
@@ -452,6 +456,7 @@ where
 /// * `pid` - A target process ID
 pub fn peek_attach_running_process(pid: types::Pid) -> Result<()> {
     ptrace_attach(pid)?;
+    ptrace_interrupt(pid)?;
     Ok(())
 }
 
