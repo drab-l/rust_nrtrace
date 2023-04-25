@@ -515,7 +515,7 @@ impl Printer {
     }
 
     fn write_any_type(&mut self, value: u64, print: &TYPES, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
-        match print {
+        let res = match print {
             TYPES::U8(fmt) => { self.write_number(value as u8, fmt) },
             TYPES::U16(fmt) => { self.write_number(value as u16, fmt) },
             TYPES::U32(fmt) => { self.write_number(value as u32, fmt) },
@@ -589,7 +589,11 @@ impl Printer {
             TYPES::RlimitPtr => { peek_write_bit_struct!(self, value, rlimit::rlimit, rlimit::compat_rlimit, pid, e) },
             TYPES::SendFlag => { socket::write_send_flag(self, value, e) },
             TYPES::SockaddrPtrLenArg3 => { self.peek_write_callback::<u64, _>(value as types::Ptr, e.argn(peek::Arg::THR) as usize, sockaddr::write_sockaddr, pid, e) },
-            TYPES::SockaddrPtrLenArg3Ptr => { self.peek_write_callback::<u64, _>(value as types::Ptr, peek::peek_data::<types::SInt>(pid, e.argn(peek::Arg::THR) as types::Ptr)? as usize, sockaddr::write_sockaddr, pid, e) },
+            TYPES::SockaddrPtrLenArg3Ptr => {
+                let addr = e.argn(peek::Arg::THR) as types::Ptr;
+                let len = if addr == 0 { 0 } else { peek::peek_data::<types::SInt>(pid, addr).unwrap_or(0) as usize };
+                self.peek_write_callback::<u64, _>(value as types::Ptr, len, sockaddr::write_sockaddr, pid, e)
+            },
             TYPES::SocketDomain => { socket::write_domain(self, value, e) },
             TYPES::SocketFlag => { socket::write_flag(self, value, e) },
             TYPES::SocketType => { socket::write_type(self, value, e) },
@@ -608,7 +612,14 @@ impl Printer {
 
             TYPES::UNDEF => { self.write_number(value, &FORMATS::HEX) },
             TYPES::SKIP | TYPES::NONE => { Ok(()) },
-        }
+        };
+
+        if res.is_err() {
+            self.write(b"::")?;
+            self.write_number(value, &FORMATS::HEX)?;
+            self.write(b"::")?;
+        };
+        Ok(())
     }
 
     fn write_header_suf(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
