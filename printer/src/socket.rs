@@ -232,8 +232,8 @@ pub fn write_socketcall_arg(printer: &mut crate::Printer, value: u64, pid: types
         }
     }
     printer.write(b"{")?;
-    let dummy = peek::SyscallSummery::new_dummy_entry(is64, UNI[call], e.sysnum(), args, 0);
     if e.is_entry() {
+        let dummy = peek::SyscallSummery::new_dummy_entry(is64, UNI[call], e.sysnum(), args, 0);
         match printer.conf.get_print_info(dummy.uni_sysnum()) {
             p if p.is_skip() => (),
             p if p.is_undef() => (),
@@ -244,6 +244,7 @@ pub fn write_socketcall_arg(printer: &mut crate::Printer, value: u64, pid: types
             }
         }
     } else {
+        let dummy = peek::SyscallSummery::new_dummy_entry(is64, UNI[call], e.sysnum(), args, e.return_value()? as i64);
         match printer.conf.get_print_info_for_ret_args(dummy.uni_sysnum()) {
             p if p.is_skip() => (),
             p if p.is_undef() => (),

@@ -329,6 +329,7 @@ define_syscall_print_info_for_ret_args!(RET_READLINKAT, NONE, NONE, StrPtrLenArg
 define_syscall_print_info_for_ret_args!(RET_READV, NONE, IovecPtrLenArg3BufLenArgR);
 define_syscall_print_info_for_ret_args!(RET_RECVMSG, NONE, MsghdrPtrBufLenArgR);
 define_syscall_print_info_for_ret_args!(RET_PRLIMIT64, NONE, NONE, NONE, Rlimit64Ptr);
+define_syscall_print_info_for_ret_args!(RET_SOCKETCALL, NONE, SocketcallArgPtr);
 define_syscall_print_info_for_ret_args!(RET_STATFS, NONE, StatfsPtr);
 define_syscall_print_info_for_ret_args!(RET_STATFS64, NONE, NONE, Statfs64Ptr);
 define_syscall_print_info_for_ret_args!(RET_STATX, NONE, NONE, NONE, NONE, StatxPtr);
@@ -478,6 +479,7 @@ impl SyscallPrinter for NR {
             NR::sys_readlinkat => &RET_READLINKAT,
             NR::sys_readv | NR::sys_preadv | NR::sys_preadv2 => &RET_READV,
             NR::sys_recvmsg => &RET_RECVMSG,
+            NR::sys_socketcall => &RET_SOCKETCALL,
             NR::sys_statfs64 | NR::sys_fstatfs64 => &RET_STATFS64,
             NR::sys_statfs | NR::sys_fstatfs => &RET_STATFS,
             NR::sys_statx => &RET_STATX,

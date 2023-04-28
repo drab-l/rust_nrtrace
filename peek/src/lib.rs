@@ -369,7 +369,7 @@ impl SyscallSummery {
     /// Create dummy summery, used for socketcall etc
     pub fn new_dummy_entry(is64: bool, uni: arch::sys_uni::NR, nr: u64, args: [u64; 6], ret:i64) -> Self {
         let args = SyscallArg{nr, args};
-        let ret = Some(if ret >= 0 && ret < -4096 { SyscallRet::OK(ret) } else { SyscallRet::ERR(ret as i32) });
+        let ret = Some(if ret >= 0 || ret < -4096 { SyscallRet::OK(ret) } else { SyscallRet::ERR(ret as i32) });
         SyscallSummery{ args, ret, uni, is64 }
     }
 
