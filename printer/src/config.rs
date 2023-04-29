@@ -38,12 +38,19 @@ pub struct SyscallPrintInfoSet {
     pub args: [TYPES; 6],
 }
 
-trait SyscallPrinter {
-    fn get_print_info(&self) -> &'static SyscallPrintInfoSet;
-    fn get_print_info_for_ret_args(&self) -> &'static SyscallPrintInfoSet;
+#[derive(Clone)]
+pub struct SyscallPrintConf {
+    conf: CONF,
+    print: &'static [SyscallPrintInfoSet],
 }
 
-enum CONF { PRINT, SKIP, SIMPLE(&'static SyscallPrintInfoSet) }
+trait SyscallPrinter {
+    fn get_print_info(&self) -> &'static [SyscallPrintInfoSet];
+    fn get_print_info_for_ret_args(&self) -> &'static [SyscallPrintInfoSet];
+}
+
+#[derive(Clone, PartialEq)]
+pub enum CONF { PRINT, SKIP, SIMPLE }
 struct PrintConf {
     nr: NR,
     conf: CONF,
@@ -55,16 +62,18 @@ pub enum PrivData {
 }
 
 pub struct Config {
-    default: Option<&'static SyscallPrintInfoSet>,
+    default: Option<SyscallPrintConf>,
     conf: Vec<PrintConf>,
 }
 
-impl SyscallPrintInfoSet {
-    pub fn is_skip(&self) -> bool {
-        self.ret == TYPES::SKIP
-    }
-    pub fn is_undef(&self) -> bool {
-        self.ret == TYPES::UNDEF
+impl SyscallPrintConf {
+    fn new(conf: CONF, print: &'static [SyscallPrintInfoSet]) -> Self { SyscallPrintConf{conf, print} }
+    pub fn is_print(&self) -> bool { self.conf == CONF::PRINT }
+    pub fn is_simple(&self) -> bool { self.conf == CONF::SIMPLE }
+    pub fn is_skip(&self) -> bool { self.conf == CONF::SKIP }
+    pub fn is_undef(&self) -> bool { self.print[0].ret == UNDEF }
+    pub fn get_print_info(&self, is64: bool) -> &'static SyscallPrintInfoSet {
+        if self.print.len() == 1 || is64 { &self.print[0] } else { &self.print[1] }
     }
 }
 
@@ -74,16 +83,26 @@ impl Config {
         Self{default: None, conf}
     }
 
-    pub fn get_print_info(&self, nr: NR) -> &'static SyscallPrintInfoSet {
-        self.get_print_info_conf(nr).unwrap_or(nr.get_print_info())
+    pub fn get_print_info(&self, nr: NR) -> SyscallPrintConf {
+        match self.conf.iter().find(|x|{x.nr == nr}) {
+            Some(PrintConf{nr:_, conf:CONF::SIMPLE}) => SyscallPrintConf::new(CONF::SIMPLE, nr.get_print_info()),
+            Some(PrintConf{nr:_, conf:CONF::SKIP}) => SyscallPrintConf::new(CONF::SKIP, &SKIPPRINT),
+            Some(PrintConf{nr:_, conf:CONF::PRINT}) => SyscallPrintConf::new(CONF::PRINT, nr.get_print_info()),
+            _ => if self.default.is_some() { self.default.as_ref().unwrap().clone() } else { SyscallPrintConf::new(CONF::PRINT, nr.get_print_info())},
+        }
     }
 
-    pub fn get_print_info_for_ret_args(&self, nr: NR) -> &'static SyscallPrintInfoSet {
-        self.get_print_info_conf_for_ret_args(nr).unwrap_or(nr.get_print_info_for_ret_args())
+    pub fn get_print_info_for_ret_args(&self, nr: NR) -> SyscallPrintConf {
+        match self.conf.iter().find(|x|{x.nr == nr}) {
+            Some(PrintConf{nr:_, conf:CONF::SIMPLE}) => SyscallPrintConf::new(CONF::SIMPLE, nr.get_print_info_for_ret_args()),
+            Some(PrintConf{nr:_, conf:CONF::SKIP}) => SyscallPrintConf::new(CONF::SKIP, &SKIPPRINT),
+            Some(PrintConf{nr:_, conf:CONF::PRINT}) => SyscallPrintConf::new(CONF::PRINT, nr.get_print_info_for_ret_args()),
+            _ => if self.default.is_some() { self.default.as_ref().unwrap().clone() } else { SyscallPrintConf::new(CONF::PRINT, nr.get_print_info_for_ret_args())},
+        }
     }
 
     pub fn set_skip_for_default(&mut self) {
-        self.default = Some(&SKIPPRINT)
+        self.default = Some(SyscallPrintConf::new(CONF::SKIP, &SKIPPRINT))
     }
 
     pub fn set_skip_by_name(&mut self, name: &str) {
@@ -100,8 +119,7 @@ impl Config {
 
     pub fn set_simple_by_name(&mut self, name: &str) {
         if let Some((_, nr)) = arch::sys_uni::map.iter().find(|(sys, _)|{ &name == sys }) {
-            let conf = CONF::SIMPLE(self.get_simple_print_info(*nr));
-            self.set_conf(*nr, conf);
+            self.set_conf(*nr, CONF::SIMPLE);
         }
     }
 
@@ -120,39 +138,9 @@ impl Config {
     pub fn set_simple_by_include_name(&mut self, name: &str) {
         arch::sys_uni::map.iter().for_each(|(sys, nr)|{
             if sys.contains(name) {
-                let conf = CONF::SIMPLE(self.get_simple_print_info(*nr));
-                self.set_conf(*nr, conf);
+                self.set_conf(*nr, CONF::SIMPLE);
             }
         })
-    }
-
-    fn get_print_info_conf(&self, nr: NR) -> Option<&'static SyscallPrintInfoSet> {
-        match self.conf.iter().find(|x|{x.nr == nr}) {
-            Some(PrintConf{nr:_, conf:CONF::SIMPLE(r)}) => Some(r),
-            Some(PrintConf{nr:_, conf:CONF::SKIP}) => Some(&SKIPPRINT),
-            Some(PrintConf{nr:_, conf:CONF::PRINT}) => None,
-            _ => self.default,
-        }
-    }
-
-    fn get_print_info_conf_for_ret_args(&self, nr: NR) -> Option<&'static SyscallPrintInfoSet> {
-        match self.conf.iter().find(|x|{x.nr == nr}) {
-            Some(PrintConf{nr:_, conf:CONF::SIMPLE(_)}) => Some(&SKIPPRINT),
-            Some(PrintConf{nr:_, conf:CONF::SKIP}) => Some(&SKIPPRINT),
-            Some(PrintConf{nr:_, conf:CONF::PRINT}) => None,
-            _ => self.default,
-        }
-    }
-
-    fn get_simple_print_info(&self, nr: NR) -> &'static SyscallPrintInfoSet {
-        let a = &nr.get_print_info().args;
-        if a[0] == TYPES::NONE { &SIMPLE_0 }
-        else if a[1] == TYPES::NONE { &SIMPLE_1 }
-        else if a[2] == TYPES::NONE { &SIMPLE_2 }
-        else if a[3] == TYPES::NONE { &SIMPLE_3 }
-        else if a[4] == TYPES::NONE { &SIMPLE_4 }
-        else if a[5] == TYPES::NONE { &SIMPLE_5 }
-        else { &SIMPLE_6 }
     }
 
     fn set_conf(&mut self, nr: NR, conf: CONF) {
@@ -227,9 +215,10 @@ define_syscall_print_info!(CLOCK_SETTIME, INTDEC, Clockid, TimespecPtr);
 define_syscall_print_info!(CLONE, LONGDEC, ULONGDEC, PTR, PTR, PTR, PTR);
 define_syscall_print_info!(CLONE3, LONGDEC, PTR, USIZEDEC);
 define_syscall_print_info!(CLOSE_RANGE, INTDEC, UINTDEC, UINTDEC, UINTDEC);
+define_syscall_print_info!(COPY_FILE_RANGE, SSIZEDEC, INTDEC, LOFFDEC_PTR, INTDEC, LOFFDEC_PTR, USIZEDEC, UINTDEC);
 define_syscall_print_info!(CREAT, INTDEC, StrPtr, INTOCT);
 define_syscall_print_info!(CREATE_MODULE, PTR, StrPtr, USIZEDEC);
-define_syscall_print_info!(COPY_FILE_RANGE, SSIZEDEC, INTDEC, LOFFDEC_PTR, INTDEC, LOFFDEC_PTR, USIZEDEC, UINTDEC);
+define_syscall_print_info!(DELETE_MODULE, INTDEC, StrPtr, INTDEC);
 define_syscall_print_info!(DUP3, INTDEC, INTDEC, INTDEC, OpenFlag);
 define_syscall_print_info!(EPOLL_CTL, INTDEC, INTDEC, EpollctlOp, INTDEC, EpolleventPtr);
 define_syscall_print_info!(EPOLL_PWAIT, INTDEC, INTDEC, PTR, INTDEC, INTDEC);
@@ -238,6 +227,8 @@ define_syscall_print_info!(EXECVE, INTDEC, StrPtr, ArgsPtr, ArgsPtr);
 define_syscall_print_info!(EXECVEAT, INTDEC, DirFd, StrPtr, ArgsPtr, ArgsPtr, AtFlag);
 define_syscall_print_info!(EXIT, NONE, INTDEC);
 define_syscall_print_info!(FACCESSAT, INTDEC, DirFd, StrPtr, INTOCT, AccessatFlag);
+define_syscall_print_info!(FADVISE64, INTDEC, INTDEC, LOFFDEC, USIZEDEC, INTHEX);
+define_syscall_print_info!(FADVISE64_64, INTDEC, INTDEC, LOFFDEC, USIZEDEC, INTHEX); // TODO add compat support
 define_syscall_print_info!(FCHDIR, INTDEC, UINTDEC);
 define_syscall_print_info!(FCHMOD, INTDEC, INTDEC, INTOCT);
 define_syscall_print_info!(FCHMODAT, INTDEC, DirFd, StrPtr, INTOCT, AtFlag);
@@ -340,7 +331,7 @@ define_syscall_print_info_for_ret_args!(RET_WAIT4, NONE, INTDEC_PTR);
 
 
 impl SyscallPrinter for NR {
-    fn get_print_info(&self) -> &'static SyscallPrintInfoSet {
+    fn get_print_info(&self) -> &'static [SyscallPrintInfoSet] {
         match self {
             NR::sys_unknown => &UNKNOWN,
             NR::sys_accept => &ACCEPT,
@@ -375,17 +366,22 @@ impl SyscallPrinter for NR {
             NR::sys_copy_file_range => &COPY_FILE_RANGE,
             NR::sys_creat => &CREAT,
             NR::sys_create_module => &CREATE_MODULE,
+            NR::sys_delete_module => &DELETE_MODULE,
             NR::sys_dup => &SYS_ALIAS_INTDEC_INTDEC,
             NR::sys_dup2 => &SYS_ALIAS_INTDEC_INTDEC_INTDEC,
             NR::sys_dup3 => &DUP3,
-            NR::sys_epoll_create => &SYS_ALIAS_INTDEC_INTDEC,
+            NR::sys_epoll_create | NR::sys_epoll_create1 => &SYS_ALIAS_INTDEC_INTDEC,
             NR::sys_epoll_ctl => &EPOLL_CTL,
-            NR::sys_epoll_wait => &EPOLL_WAIT,
             NR::sys_epoll_pwait => &EPOLL_PWAIT,
+            NR::sys_epoll_wait => &EPOLL_WAIT,
+            NR::sys_eventfd => &SYS_ALIAS_INTDEC_INTDEC,
+            NR::sys_eventfd2 => &SYS_ALIAS_INTDEC_INTDEC_INTDEC,
             NR::sys_execve => &EXECVE,
             NR::sys_execveat => &EXECVEAT,
             NR::sys_exit | NR::sys_exit_group => &EXIT,
             NR::sys_faccessat | NR::sys_faccessat2 => &FACCESSAT,
+            NR::sys_fadvise64 => &FADVISE64,
+            NR::sys_fadvise64_64 => &FADVISE64_64,
             NR::sys_fchdir => &FCHDIR,
             NR::sys_fchmod => &FCHMOD,
             NR::sys_fchmodat => &FCHMODAT,
@@ -457,7 +453,7 @@ impl SyscallPrinter for NR {
             _ => &UNDEFPRINT,
         }
     }
-    fn get_print_info_for_ret_args(&self) -> &'static SyscallPrintInfoSet {
+    fn get_print_info_for_ret_args(&self) -> &'static [SyscallPrintInfoSet] {
         match self {
             NR::sys_accept | NR::sys_accept4 => &RET_ACCEPT,
             NR::sys_adjtimex => &RET_ADJTIMEX,

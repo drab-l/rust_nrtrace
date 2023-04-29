@@ -240,7 +240,7 @@ pub fn write_socketcall_arg(printer: &mut crate::Printer, value: u64, pid: types
             p  => {
                 printer.write(CALL[call].1.as_bytes())?;
                 printer.write(b", ")?;
-                printer.write_args_impl(p, pid, &dummy)?;
+                printer.write_args_impl(&p, pid, &dummy)?;
             }
         }
     } else {
@@ -250,7 +250,7 @@ pub fn write_socketcall_arg(printer: &mut crate::Printer, value: u64, pid: types
             p if p.is_undef() => (),
             p => {
                 printer.write(CALL[call].1.as_bytes())?;
-                printer.write_ret_args_impl(p, pid, &dummy)?;
+                printer.write_ret_args_impl(&p, pid, &dummy)?;
             },
         }
     }

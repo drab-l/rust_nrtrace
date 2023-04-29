@@ -641,14 +641,18 @@ impl Printer {
         self.write(b"(...) = ")
     }
 
-    fn write_args_impl(&mut self, print: &config::SyscallPrintInfoSet, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_args_impl(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let a = e.args();
+        let simple = conf.is_simple();
+        let simple_type = TYPES::U64(FORMATS::HEX);
+        let print = conf.get_print_info(e.is_64());
         for i in 0..a.len() {
             if print.args[i] == TYPES::NONE { break }
             if i != 0 {
                 self.write(b", ")?;
             }
-            self.write_any_type(a[i], &print.args[i], pid, e)?;
+            let arg = if simple { &simple_type } else { &print.args[i] };
+            self.write_any_type(a[i], &arg, pid, e)?;
         }
         Ok(())
     }
@@ -664,26 +668,37 @@ impl Printer {
         Ok(())
     }
 
-    fn write_ret_args_impl(&mut self, print: &config::SyscallPrintInfoSet, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_ret_args_impl(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let a = e.args();
+        let simple = conf.is_simple();
+        let simple_type = TYPES::U64(FORMATS::HEX);
+        let print = conf.get_print_info(e.is_64());
         for i in 0..a.len() {
             if print.args[i] == TYPES::NONE { continue }
             self.write(b", ")?;
             self.write_number(i, &FORMATS::DEC)?;
             self.write(b": ")?;
-            self.write_any_type(a[i], &print.args[i], pid, e)?;
+            let arg = if simple { &simple_type } else { &print.args[i] };
+            self.write_any_type(a[i], &arg, pid, e)?;
         }
         Ok(())
     }
 
     fn is_need_peek_for_write_ret_args(&mut self, _pid: types::Pid, e: &peek::SyscallSummery) -> bool {
-        self.conf.get_print_info_for_ret_args(e.uni_sysnum()).args.iter().any(|x|x.is_need_peek())
+        let conf = self.conf.get_print_info_for_ret_args(e.uni_sysnum());
+        if !conf.is_print() {
+            false
+        } else {
+            conf.get_print_info(e.is_64()).args.iter().any(|x|x.is_need_peek())
+        }
     }
 
     fn write_ret_args(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
-        match self.conf.get_print_info_for_ret_args(e.uni_sysnum()) {
-            p if p.is_skip() => Ok(()),
-            p => self.write_ret_args_impl(p, pid, e),
+        let conf = self.conf.get_print_info_for_ret_args(e.uni_sysnum());
+        if conf.is_skip() {
+            Ok(())
+        } else {
+            self.write_ret_args_impl(&conf, pid, e)
         }
     }
 
@@ -695,14 +710,14 @@ impl Printer {
         }
     }
 
-    fn write_ret(&mut self, print: &config::SyscallPrintInfoSet, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_ret_impl(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+        let print = conf.get_print_info(e.is_64());
+        let print_type = if conf.is_simple() { TYPES::U64(FORMATS::HEX) } else { print.ret };
         self.write_exit_header(pid, e)?;
         match e.return_value() {
             Ok(r) => {
-                self.write_any_type(r, &print.ret, pid, e)?;
-                if !print.is_undef() {
-                    self.write_ret_args(pid, e)?;
-                }
+                self.write_any_type(r, &print_type, pid, e)?;
+                self.write_ret_args(pid, e)?;
             },
             Err(r) => self.write_errno(r, e)?,
         }
@@ -717,21 +732,21 @@ impl Printer {
             },
             p => {
                 if self.is_need_peek_for_write_ret_args(pid, e) {
-                    let r = self.write_ret(p, pid, e);
+                    let r = self.write_ret_impl(&p, pid, e);
                     let _r = peek::cont_process(pid);
                     r
                 } else {
                     let _r = peek::cont_process(pid);
-                    self.write_ret(p, pid, e)
+                    self.write_ret_impl(&p, pid, e)
                 }
             }
         }
     }
 
-    fn write_syscall_args(&mut self, print: &config::SyscallPrintInfoSet, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_syscall_args(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write_entry_header(pid, e)?;
         self.write(b"(")?;
-        self.write_args_impl(print, pid, e)?;
+        self.write_args_impl(conf, pid, e)?;
         self.write(b")")?;
         self.flush_line()?;
         Ok(())
@@ -749,7 +764,7 @@ impl Printer {
                 self.flush_line()
             },
             p  => {
-                if p.args.iter().any(|x|x.is_need_peek()) {
+                if p.get_print_info(e.is_64()).args.iter().any(|x|x.is_need_peek()) {
                     let r = self.write_syscall_args(&p, pid, e);
                     let _r = peek::cont_process(pid);
                     r
