@@ -26,7 +26,11 @@ impl TYPES {
             AccessatFlag | AtFlag | Clockid | DirFd | EpollctlOp | FdFlag | IoctlReqest | LseekWhence | MadviseAdvice | MmapFlag | MmapProt | NewfstatatFlag | OpenFlag | RenameFlag | RlimitResource | SendFlag | SocketDomain | SocketFlag | SocketType | SocketcallCall |
             PTR
             => false,
-            _ => true,
+            IntPtr(_) | I64Ptr(_) | StrPtr | StrPtrLenArgR | ArgsPtr | IntArrayPtrLen2 |
+            EpolleventPtr | EpolleventArrayPtrLenArgR | FdsetPtrArg1 | IovecPtrLenArg3 | IovecPtrLenArg3BufLenArgR | Linuxdirent64PtrLenArgR | MsghdrPtr | MsghdrPtrBufLenArgR |
+            OldoldutsnamePtr | OldutsnamePtr | Rlimit64Ptr | RlimitPtr | SockaddrPtrLenArg3 | SockaddrPtrLenArg3Ptr | SocketcallArgPtr | Statfs64Ptr | StatfsPtr | StatPtr | StatxPtr | SysinfoPtr | TimespecPtr | TimevalPtr | TimexPtr | TimezonePtr | UtsnamePtr |
+            AsciiOrHexPtrLenArg3 | AsciiOrHexPtrLenArgR
+            => true,
         }
     }
 }
@@ -178,13 +182,6 @@ define_print_info_all_fmt_type!(LOFFHEX_PTR, LOFFDEC_PTR, LOFFOCT_PTR, I64Ptr);
 
 define_syscall_print_info!(UNDEFPRINT, UNDEF);
 define_syscall_print_info!(SKIPPRINT, SKIP);
-define_syscall_print_info!(SIMPLE_0, INTDEC);
-define_syscall_print_info!(SIMPLE_1, INTDEC, U64HEX);
-define_syscall_print_info!(SIMPLE_2, INTDEC, U64HEX, U64HEX);
-define_syscall_print_info!(SIMPLE_3, INTDEC, U64HEX, U64HEX, U64HEX);
-define_syscall_print_info!(SIMPLE_4, INTDEC, U64HEX, U64HEX, U64HEX, U64HEX);
-define_syscall_print_info!(SIMPLE_5, INTDEC, U64HEX, U64HEX, U64HEX, U64HEX, U64HEX);
-define_syscall_print_info!(SIMPLE_6, INTDEC, U64HEX, U64HEX, U64HEX, U64HEX, U64HEX, U64HEX);
 define_syscall_print_info!(UNKNOWN, U64HEX, U64HEX, U64HEX, U64HEX, U64HEX, U64HEX, U64HEX);
 
 define_syscall_print_info!(SYS_ALIAS_INTDEC_INTDEC, INTDEC, INTDEC);
@@ -228,7 +225,12 @@ define_syscall_print_info!(EXECVEAT, INTDEC, DirFd, StrPtr, ArgsPtr, ArgsPtr, At
 define_syscall_print_info!(EXIT, NONE, INTDEC);
 define_syscall_print_info!(FACCESSAT, INTDEC, DirFd, StrPtr, INTOCT, AccessatFlag);
 define_syscall_print_info!(FADVISE64, INTDEC, INTDEC, LOFFDEC, USIZEDEC, INTHEX);
-define_syscall_print_info!(FADVISE64_64, INTDEC, INTDEC, LOFFDEC, USIZEDEC, INTHEX); // TODO add compat support
+define_syscall_print_info_bits!(FADVISE64_64, INTDEC,
+                                INTDEC, LOFFDEC, USIZEDEC, INTHEX,
+                                INTDEC, U32HEX, U32HEX, U32HEX, U32HEX, INTHEX);
+define_syscall_print_info_bits!(FALLOCATE, INTDEC,
+                                INTDEC, INTDEC, LOFFDEC, LOFFDEC,
+                                INTDEC, INTDEC, U32HEX, U32HEX, U32HEX, U32HEX);
 define_syscall_print_info!(FCHDIR, INTDEC, UINTDEC);
 define_syscall_print_info!(FCHMOD, INTDEC, INTDEC, INTOCT);
 define_syscall_print_info!(FCHMODAT, INTDEC, DirFd, StrPtr, INTOCT, AtFlag);
@@ -382,6 +384,7 @@ impl SyscallPrinter for NR {
             NR::sys_faccessat | NR::sys_faccessat2 => &FACCESSAT,
             NR::sys_fadvise64 => &FADVISE64,
             NR::sys_fadvise64_64 => &FADVISE64_64,
+            NR::sys_fallocate => &FALLOCATE,
             NR::sys_fchdir => &FCHDIR,
             NR::sys_fchmod => &FCHMOD,
             NR::sys_fchmodat => &FCHMODAT,
