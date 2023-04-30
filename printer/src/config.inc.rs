@@ -1,17 +1,20 @@
 macro_rules! define_print_info_hex_type {
     ($name:ident, $type:ident) => {
+        #[allow(dead_code)]
         const $name: TYPES = TYPES::$type(FORMATS::HEX);
     };
 }
 
 macro_rules! define_print_info_dec_type {
     ($name:ident, $type:ident) => {
+        #[allow(dead_code)]
         const $name: TYPES = TYPES::$type(FORMATS::DEC);
     };
 }
 
 macro_rules! define_print_info_oct_type {
     ($name:ident, $type:ident) => {
+        #[allow(dead_code)]
         const $name: TYPES = TYPES::$type(FORMATS::OCT);
     };
 }

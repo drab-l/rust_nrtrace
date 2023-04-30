@@ -1,9 +1,8 @@
-#![allow(unused_variables)]
-#![allow(dead_code)]
 
 use arch::sys_uni::NR;
 use TYPES::*;
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum TYPES {
     SKIP, NONE, UNDEF,
@@ -263,15 +262,15 @@ define_syscall_print_info!(OPENAT2, INTDEC, DirFd, StrPtr, PTR, SSIZEDEC);
 define_syscall_print_info!(PIPE, INTDEC, PTR);
 define_syscall_print_info!(PIPE2, INTDEC, PTR, FdFlag);
 define_syscall_print_info!(PRLIMIT64, INTDEC, PID, RlimitResource, Rlimit64Ptr, PTR);
-define_syscall_print_info!(PREAD, SSIZEDEC, UINTDEC, PTR, USIZEDEC, OFFDEC);
+//define_syscall_print_info!(PREAD, SSIZEDEC, UINTDEC, PTR, USIZEDEC, OFFDEC);
 define_syscall_print_info!(PREAD64, SSIZEDEC, UINTDEC, PTR, USIZEDEC, LOFFDEC);
 define_syscall_print_info!(PREADV, SSIZEDEC, UINTDEC, PTR, INTDEC, OFFDEC);
 define_syscall_print_info!(PREADV2, SSIZEDEC, UINTDEC, PTR, INTDEC, OFFDEC, INTDEC);
 define_syscall_print_info!(PSELECT, INTDEC, INTDEC, FdsetPtrArg1, FdsetPtrArg1, FdsetPtrArg1, TimespecPtr, PTR);
-define_syscall_print_info!(PWRITE, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
-define_syscall_print_info!(PWRITE64, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, LOFFDEC);
-define_syscall_print_info!(PWRITEV, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
-define_syscall_print_info!(PWRITEV2, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC, INTDEC);
+//define_syscall_print_info!(PWRITE, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
+//define_syscall_print_info!(PWRITE64, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, LOFFDEC);
+//define_syscall_print_info!(PWRITEV, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
+//define_syscall_print_info!(PWRITEV2, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC, INTDEC);
 define_syscall_print_info!(READ, SSIZEDEC, UINTDEC, PTR, USIZEDEC);
 define_syscall_print_info!(READLINK, INTDEC, StrPtr, PTR, USIZEDEC);
 define_syscall_print_info!(READLINKAT, DirFd, INTDEC, StrPtr, PTR, USIZEDEC);
