@@ -222,7 +222,8 @@ define_syscall_print_info!(EPOLL_WAIT, INTDEC, INTDEC, PTR, INTDEC, INTDEC, PTR)
 define_syscall_print_info!(EXECVE, INTDEC, StrPtr, ArgsPtr, ArgsPtr);
 define_syscall_print_info!(EXECVEAT, INTDEC, DirFd, StrPtr, ArgsPtr, ArgsPtr, AtFlag);
 define_syscall_print_info!(EXIT, NONE, INTDEC);
-define_syscall_print_info!(FACCESSAT, INTDEC, DirFd, StrPtr, INTOCT, AccessatFlag);
+define_syscall_print_info!(FACCESSAT, INTDEC, DirFd, StrPtr, INTOCT);
+define_syscall_print_info!(FACCESSAT2, INTDEC, DirFd, StrPtr, INTOCT, AccessatFlag);
 define_syscall_print_info!(FADVISE64, INTDEC, INTDEC, LOFFDEC, USIZEDEC, INTHEX);
 define_syscall_print_info_bits!(FADVISE64_64, INTDEC,
                                 INTDEC, LOFFDEC, USIZEDEC, INTHEX,
@@ -236,6 +237,9 @@ define_syscall_print_info!(FCHMODAT, INTDEC, DirFd, StrPtr, INTOCT, AtFlag);
 define_syscall_print_info!(FCHOWN, INTDEC, INTDEC, INTDEC, INTDEC);
 define_syscall_print_info!(FCHOWNAT, INTDEC, DirFd, StrPtr, INTDEC, INTDEC, AtFlag);
 define_syscall_print_info!(FCNTL, INTDEC, UINTDEC, ULONGDEC);
+define_syscall_print_info!(FCNTL64, INTDEC, UINTDEC, ULONGDEC);
+define_syscall_print_info!(FGETXATTR, SSIZEDEC, INTDEC, StrPtr, PTR, USIZEDEC);
+define_syscall_print_info!(FINIT_MODULE, INTDEC, INTDEC, StrPtr, INTHEX);
 define_syscall_print_info!(FSTATFS, INTDEC, UINTDEC, PTR);
 define_syscall_print_info!(FSTATFS64, INTDEC, UINTDEC, USIZEDEC, PTR);
 define_syscall_print_info!(FUTEX, INTDEC, PTR, INTDEC, INTDEC, PTR, PTR, INTDEC);
@@ -244,6 +248,8 @@ define_syscall_print_info!(GETPID, PID);
 define_syscall_print_info!(GETPGID, PID, PID);
 define_syscall_print_info!(GETRANDOM, SSIZEDEC, PTR, USIZEDEC, INTDEC);
 define_syscall_print_info!(GETTIMEOFDAY, INTDEC, PTR, PTR);
+define_syscall_print_info!(GETXATTR, SSIZEDEC, StrPtr, StrPtr, PTR, USIZEDEC);
+define_syscall_print_info!(INIT_MODULE, INTDEC, PTR, ULONGDEC, StrPtr);
 define_syscall_print_info!(IOCTL, INTDEC, INTDEC, IoctlReqest);
 define_syscall_print_info!(LSEEK, OFFDEC, INTDEC, OFFDEC, LseekWhence);
 define_syscall_print_info!(MADIVISE, INTDEC, PTR, INTDEC, MadviseAdvice);
@@ -308,6 +314,7 @@ define_syscall_print_info_for_ret_args!(RET_CLOCK_GETTIME, NONE, TimespecPtr);
 define_syscall_print_info_for_ret_args!(RET_CLOCK_NANOSLEEP, NONE, NONE, TimespecPtr, TimespecPtr);
 define_syscall_print_info_for_ret_args!(RET_COPY_FILE_RANGE, NONE, LOFFDEC_PTR, NONE, LOFFDEC_PTR);
 define_syscall_print_info_for_ret_args!(RET_EPOLL_WAIT, NONE, EpolleventArrayPtrLenArgR);
+define_syscall_print_info_for_ret_args!(RET_FGETXATTR, NONE, NONE, AsciiOrHexPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_GETDENTS64, NONE, Linuxdirent64PtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_GETTIMEOFDAY, TimevalPtr, TimezonePtr);
 define_syscall_print_info_for_ret_args!(RET_NANOSLEEP, TimespecPtr, TimespecPtr);
@@ -380,7 +387,8 @@ impl SyscallPrinter for NR {
             NR::sys_execve => &EXECVE,
             NR::sys_execveat => &EXECVEAT,
             NR::sys_exit | NR::sys_exit_group => &EXIT,
-            NR::sys_faccessat | NR::sys_faccessat2 => &FACCESSAT,
+            NR::sys_faccessat => &FACCESSAT,
+            NR::sys_faccessat2 => &FACCESSAT2,
             NR::sys_fadvise64 => &FADVISE64,
             NR::sys_fadvise64_64 => &FADVISE64_64,
             NR::sys_fallocate => &FALLOCATE,
@@ -390,8 +398,12 @@ impl SyscallPrinter for NR {
             NR::sys_fchown => &FCHOWN,
             NR::sys_fchownat => &FCHOWNAT,
             NR::sys_fcntl => &FCNTL,
-            NR::sys_fstatfs64 => &FSTATFS64,
+            NR::sys_fcntl64 => &FCNTL64,
+            NR::sys_fdatasync => &SYS_ALIAS_INTDEC_INTDEC,
+            NR::sys_fgetxattr => &FGETXATTR,
+            NR::sys_finit_module => &FINIT_MODULE,
             NR::sys_fstatfs => &FSTATFS,
+            NR::sys_fstatfs64 => &FSTATFS64,
             NR::sys_futex => &FUTEX,
             NR::sys_getdents64 => &GETDENTS64,
             NR::sys_getegid | NR::sys_getegid32 | NR::sys_geteuid | NR::sys_geteuid32 | NR::sys_getgid | NR::sys_getgid32 | NR::sys_getpgrp
@@ -399,6 +411,8 @@ impl SyscallPrinter for NR {
             NR::sys_getpgid | NR::sys_getsid | NR::sys_setpgid => &GETPGID,
             NR::sys_getrandom => &GETRANDOM,
             NR::sys_gettimeofday => &GETTIMEOFDAY,
+            NR::sys_getxattr | NR::sys_lgetxattr=> &GETXATTR,
+            NR::sys_init_module => &INIT_MODULE,
             NR::sys_ioctl => &IOCTL,
             NR::sys_listen => &SYS_ALIAS_INTDEC_INTDEC_INTDEC,
             NR::sys_lseek => &LSEEK,
@@ -464,6 +478,7 @@ impl SyscallPrinter for NR {
             NR::sys_clock_nanosleep => &RET_CLOCK_NANOSLEEP,
             NR::sys_copy_file_range => &RET_COPY_FILE_RANGE,
             NR::sys_epoll_wait | NR::sys_epoll_pwait => &RET_EPOLL_WAIT,
+            NR::sys_fgetxattr | NR::sys_getxattr | NR::sys_lgetxattr=> &RET_FGETXATTR,
             NR::sys_getdents64 => &RET_GETDENTS64,
             NR::sys_gettimeofday => &RET_GETTIMEOFDAY,
             NR::sys_nanosleep => &RET_NANOSLEEP,
