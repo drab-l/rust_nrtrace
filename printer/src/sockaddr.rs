@@ -67,10 +67,10 @@ unsafe fn strlen(base: *const u8) -> usize {
 }
 
 impl crate::Print for sockaddr_un_path {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".sun_family = AF_UNIX")
     }
-    fn print_flex_tail(&self, printer: &mut crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print_flex_tail(&self, printer: &crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write_maybe_ascii(buf)
     }
     fn flex_tail_size(&self) -> usize {
@@ -86,10 +86,10 @@ impl crate::Print for sockaddr_un_path {
 }
 
 impl crate::Print for sockaddr_un_abstract {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".sun_family = AF_UNIX")
     }
-    fn print_flex_tail(&self, printer: &mut crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print_flex_tail(&self, printer: &crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b", sun_path = \"\\x00")?;
         printer.write_maybe_ascii(buf)?;
         printer.write(b"\"")
@@ -107,14 +107,14 @@ impl crate::Print for sockaddr_un_abstract {
 }
 
 impl crate::Print for sockaddr_un_unname {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".sun_family = AF_UNIX")?;
         Ok(())
     }
 }
 
 impl crate::Print for sockaddr_in {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".sin_family = AF_INET")?;
         printer.write(b", .sin_port = hton(")?;
         printer.write_number(self.sin_port.swap_bytes(), &FORMATS::DEC)?;
@@ -132,7 +132,7 @@ impl crate::Print for sockaddr_in {
 }
 
 impl crate::Print for sockaddr_in6 {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".sin6_family = AF_INET6")?;
         printer.write(b", .sin6_flowinfo = hton(")?;
         printer.write_number(self.sin6_flowinfo.swap_bytes(), &FORMATS::DEC)?;
@@ -152,7 +152,7 @@ impl crate::Print for sockaddr_in6 {
 }
 
 impl crate::Print for sockaddr_nl {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".nl_family = AF_NETLINK")?;
         printer.write(b", .nl_pid = ")?;
         printer.write_number(self.nl_pid, &FORMATS::DEC)?;
@@ -163,7 +163,7 @@ impl crate::Print for sockaddr_nl {
 }
 
 impl crate::Print for sockaddr_vm {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".svm_family = AF_VSOCK")?;
         printer.write(b", .svm_port = ")?;
         printer.write_number(self.svm_port, &FORMATS::DEC)?;
@@ -173,7 +173,7 @@ impl crate::Print for sockaddr_vm {
     }
 }
 
-pub fn write_sockaddr(printer: &mut crate::Printer, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_sockaddr(printer: &crate::Printer, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     if buf.len() < std::mem::size_of::<SockFamily>() {
         printer.write(b"{")?;
         printer.write_as_hex(buf)?;

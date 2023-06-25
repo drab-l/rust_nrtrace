@@ -21,7 +21,7 @@ const EVENTS: [(types::UInt, &'static str); 12] = [
 ];
 
 impl crate::Print for epoll_event {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".events = ")?; printer.write_mask_enum(self.events, &EVENTS)?;
         printer.write(b", .data = ")?; printer.write_number(self.data, &FORMATS::HEX)
     }
@@ -29,7 +29,7 @@ impl crate::Print for epoll_event {
 
 const OP: [(types::SInt, &'static str); 3] = [ (1, "EPOLL_CTL_ADD"), (2, "EPOLL_CTL_DEL"), (3, "EPOLL_CTL_MOD"), ];
 
-pub fn write_op(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_op(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     let value = value as u32;
     if value == 0 {
         printer.write(b"0")

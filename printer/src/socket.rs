@@ -50,7 +50,7 @@ macro_rules! offset_of {
 
 const SEND_FLAG: [(u32, &'static str); 7] = [ (0x800, "MSG_CONFIRM"), (4, "MSG_DONTROUTE"), (0x40, "MSG_DONTWAIT"), (0x80, "MSG_EOR"), (0x8000, "MSG_MORE"), (0x4000, "MSG_NOSIGNAL"), (1, "MSG_OOB"),];
 
-pub fn write_send_flag(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_send_flag(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     if value == 0 {
         printer.write(b"0")?;
     } else {
@@ -86,11 +86,11 @@ macro_rules! cmsg_print_tail {
 macro_rules! cmsg_impl_print {
     ($type:ty) => {
         impl crate::Print for $type {
-            fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 cmsg_print!(self, printer);
                 Ok(())
             }
-            fn print_flex_tail(&self, printer: &mut crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_flex_tail(&self, printer: &crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 cmsg_print_tail!(buf, printer);
                 Ok(())
             }
@@ -103,20 +103,20 @@ macro_rules! cmsg_impl_print {
             fn total_size(&self) -> usize {
                 cmsg_align!(self)
             }
-            fn print_array_delim(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_array_delim(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b",\n\t")
             }
-            fn print_array_prefix(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_array_prefix(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b"\n\t")
             }
-            fn print_array_suffix(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_array_suffix(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b"\n\t")
             }
         }
     };
 }
 
-fn write_cmsghdr_array<T: crate::Print>(printer: &mut crate::Printer, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+fn write_cmsghdr_array<T: crate::Print>(printer: &crate::Printer, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     if buf.len() < std::mem::size_of::<T>() {
         return printer.write(b"{}");
     }
@@ -128,7 +128,7 @@ macro_rules!  msghdr_impl_print {
     ($msghdr:ty, $iovec:ty, $cmsghdr:ty) => {
         cmsg_impl_print!($cmsghdr);
         impl crate::Print for $msghdr {
-            fn print(&self, printer: &mut crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b".msg_name = ")?;
                 printer.peek_write_maybe_ascii(self.msg_name as types::Ptr, self.msg_namelen as usize, pid, e)?;
                 printer.write(b", .msg_namelen = ")?;
@@ -170,7 +170,7 @@ const DOMAIN: [(u32, &'static str); 45] = [
 (40, "AF_VSOCK"), (41, "AF_KCM"), (42, "AF_QIPCRTR"), (43, "AF_SMC"), (44, "AF_XDP"),
 ];
 
-pub fn write_domain(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_domain(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     let value = value as u32;
     printer.write_enum(value, &DOMAIN)
 }
@@ -178,11 +178,11 @@ pub fn write_domain(printer: &mut crate::Printer, value: u64, _: &peek::SyscallS
 const SOCK_TYPE: [(u32, &'static str); 7] = [ (1, "STREAM"), (2, "DGRAM"), (3, "RAW"), (4, "RDM"), (5, "SEQPACKET"), (6, "DCCP"), (10, "PACKET"), ];
 const SOCK_FLAG: [(u32, &'static str); 3] = [ (0o02004000, "SOCK_NONBLOCK | SOCK_CLOEXEC"), (0o00004000, "SOCK_NONBLOCK"), (0o02000000, "SOCK_CLOEXEC"), ];
 
-pub fn write_flag(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_flag(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     printer.write_enum(value as u32, &SOCK_FLAG)
 }
 
-pub fn write_type(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_type(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     let value = value as u32;
     for (v,n) in SOCK_FLAG.iter() {
         if value == *v {
@@ -200,11 +200,11 @@ const CALL: [(u32, &'static str); 21] = [
 (16, "sendmsg"), (17, "recvmsg"), (18, "accept4"), (19, "recvmmsg"), (20, "sendmmsg"),
 ];
 
-pub fn write_socketcall_call(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_socketcall_call(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     printer.write_enum(value as u32, &CALL)
 }
 
-pub fn write_socketcall_arg(printer: &mut crate::Printer, value: u64, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_socketcall_arg(printer: &crate::Printer, value: u64, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     const UNI: [NR; 21] = [
         NR::sys_unknown, NR::sys_socket, NR::sys_bind, NR::sys_connect, NR::sys_listen, NR::sys_accept,
         NR::sys_getsockname, NR::sys_getpeername, NR::sys_socketpair, NR::sys_send, NR::sys_recv,

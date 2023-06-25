@@ -67,7 +67,7 @@ pub struct compat_statfs64 {
 macro_rules! statfs_impl_print {
     ($type:ty) => {
         impl crate::Print for $type {
-            fn print(&self, printer: &mut crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b".f_type = ")?; printer.write_number(self.f_type, &FORMATS::HEX)?;
                 printer.write(b", .f_bsize = ")?; printer.write_number(self.f_bsize, &FORMATS::DEC)?;
                 printer.write(b", .f_blocks = ")?; printer.write_number(self.f_blocks, &FORMATS::DEC)?;

@@ -32,14 +32,14 @@ macro_rules! print_stat {
 }
 
 impl crate::Print for stat {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         print_stat!(self.data, printer);
         Ok(())
     }
 }
 
 impl crate::Print for compat_stat {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         print_stat!(self.data, printer);
         Ok(())
     }
@@ -88,14 +88,14 @@ const STATX_ATTR: [(u64, &'static str); 7] = [
 ];
 
 impl crate::Print for statx_timestamp {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".tv_sec = ")?; printer.write_number(self.tv_sec, &FORMATS::DEC)?;
         printer.write(b", .tv_nsec = ")?; printer.write_number(self.tv_nsec, &FORMATS::DEC)
     }
 }
 
 impl crate::Print for statx {
-    fn print(&self, printer: &mut crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if self.stx_mask == 0 { printer.write(b".stx_mask = 0")?; }
         else { printer.write(b".stx_mask = ")?; printer.write_mask_enum(self.stx_mask, &STATX_MASK)?; }
         printer.write(b", .stx_blksize = ")?; printer.write_number(self.stx_blksize, &FORMATS::DEC)?;
@@ -121,7 +121,7 @@ impl crate::Print for statx {
     }
 }
 
-pub fn write_newfstatat_flags(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_newfstatat_flags(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     let value = value as u32;
     if value == 0 {
         printer.write(b"0")

@@ -7,7 +7,7 @@ const RESOURCE: [(u32, &'static str);17] = [
     (15,"RLIMIT_RTTIME"), (16,"RLIM_NLIMITS"),
 ];
 
-pub fn write_resource(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_resource(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     printer.write_enum(value as u32, &RESOURCE)
 }
 
@@ -30,7 +30,7 @@ pub struct compat_rlimit {
 }
 
 impl crate::Print for rlimit64 {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".rlim_cur = ")?;
         printer.write_number(self.rlim_cur, &FORMATS::DEC)?;
         printer.write(b", .rlim_max = ")?;
@@ -40,7 +40,7 @@ impl crate::Print for rlimit64 {
 }
 
 impl crate::Print for rlimit {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".rlim_cur = ")?;
         printer.write_number(self.rlim_cur, &FORMATS::DEC)?;
         printer.write(b", .rlim_max = ")?;
@@ -50,7 +50,7 @@ impl crate::Print for rlimit {
 }
 
 impl crate::Print for compat_rlimit {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".rlim_cur = ")?;
         printer.write_number(self.rlim_cur, &FORMATS::DEC)?;
         printer.write(b", .rlim_max = ")?;

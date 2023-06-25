@@ -25,7 +25,7 @@ extern fn sighandle_exit (_: types::SInt) {
 
 fn event_loop(printer: printer::Printer) -> Result<()> {
     let mut history = history::HistMap::new();
-    let mut log = printer;
+    let log = printer;
     loop {
         match peek::wait_event() {
             Ok((pid, peek::ChildEventKind::ForkStop)) => {

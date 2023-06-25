@@ -173,7 +173,7 @@ macro_rules! impl_print_trait {
             data: $type,
         }
         impl crate::Print for $name {
-            fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write_number(self.data, &$fmt)
             }
         }

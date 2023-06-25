@@ -16,7 +16,7 @@ pub struct compat_iovec {
 macro_rules! iovec_impl_print {
     ($type:ty) => {
         impl crate::Print for $type {
-            fn print(&self, printer: &mut crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b".io_base = ")?;
                 if let crate::config::PrivData::IOVEC(s) = printer.prv_data.get() {
                     let min = std::cmp::min(s, self.iov_len as usize);
@@ -29,13 +29,13 @@ macro_rules! iovec_impl_print {
                 printer.write_number(self.iov_len, &FORMATS::DEC)?;
                 Ok(())
             }
-            fn print_array_delim(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_array_delim(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b",\n\t")
             }
-            fn print_array_prefix(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_array_prefix(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b"\n\t")
             }
-            fn print_array_suffix(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print_array_suffix(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b"\n\t")
             }
         }

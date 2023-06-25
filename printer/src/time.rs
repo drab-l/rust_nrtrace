@@ -56,7 +56,7 @@ pub struct timex {
 macro_rules! timeval_impl_print {
     ($type:ty) => {
         impl crate::Print for $type {
-            fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b".tv_sec = ")?; printer.write_number(self.tv_sec, &FORMATS::DEC)?;
                 printer.write(b", .tv_nsec = ")?; printer.write_number(self.tv_nsec, &FORMATS::DEC)
             }
@@ -70,14 +70,14 @@ timeval_impl_print!(timeval);
 timeval_impl_print!(compat_timeval);
 
 impl crate::Print for timezone {
-    fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".tz_minuteswest = ")?; printer.write_number(self.tz_minuteswest, &FORMATS::DEC)?;
         printer.write(b", .tz_dsttime = ")?; printer.write_number(self.tz_dsttime, &FORMATS::DEC)
     }
 }
 
 impl crate::Print for timex {
-    fn print(&self, printer: &mut crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".modes = ")?; printer.write_number(self.modes, &FORMATS::DEC)?;
         printer.write(b", .offset = ")?; printer.write_number(self.offset, &FORMATS::DEC)?;
         printer.write(b", .freq = ")?; printer.write_number(self.freq, &FORMATS::DEC)?;
@@ -107,6 +107,6 @@ const CLOCKID: [(u32, &'static str); 10] = [
 (5, "CLOCK_REALTIME_COARSE"), (6, "CLOCK_MONOTONIC_COARSE"), (7, "CLOCK_BOOTTIME"), (8, "CLOCK_REALTIME_ALARM"), (9, "CLOCK_BOOTTIME_ALARM"),
 ];
 
-pub fn write_clockid(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_clockid(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     printer.write_enum(value as u32, &CLOCKID)
 }

@@ -1,5 +1,5 @@
 
-pub fn write_errno(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_errno(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     printer.write_enum(value as u32, &ERRNO)
 }
 

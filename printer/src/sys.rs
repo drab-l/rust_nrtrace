@@ -38,7 +38,7 @@ pub struct compat_sysinfo {
 macro_rules! sysinfo_impl_print {
     ($type:ty) => {
         impl crate::Print for $type {
-            fn print(&self, printer: &mut crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b".uptime = ")?; printer.write_number(self.uptime, &FORMATS::DEC)?;
                 printer.write(b", .loads = ")?; printer.write_number_array(&self.loads, &FORMATS::DEC)?;
                 printer.write(b", .totalram = ")?; printer.write_number(self.totalram, &FORMATS::DEC)?;

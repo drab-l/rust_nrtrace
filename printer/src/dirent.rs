@@ -14,7 +14,7 @@ macro_rules! offset_of {
 }
 
 impl crate::Print for linux_dirent64 {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b".d_ino = ")?;
         printer.write_number(self.d_ino, &FORMATS::HEX)?;
         printer.write(b", .d_off = ")?;
@@ -26,7 +26,7 @@ impl crate::Print for linux_dirent64 {
         Ok(())
     }
 
-    fn print_flex_tail(&self, printer: &mut crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print_flex_tail(&self, printer: &crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b", .d_name = \"")?;
         let n = buf.iter().position(|x| *x == 0).unwrap_or(buf.len());
         printer.write(&buf[..n])?;
@@ -46,14 +46,14 @@ impl crate::Print for linux_dirent64 {
         self.d_reclen as usize
     }
 
-    fn print_array_delim(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print_array_delim(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b",\n\t")
     }
 
-    fn print_array_prefix(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print_array_prefix(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b"\n\t")
     }
-    fn print_array_suffix(printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print_array_suffix(printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b"\n\t")
     }
 }

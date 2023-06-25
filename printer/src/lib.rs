@@ -117,11 +117,11 @@ const fn sizeof<T>(_: &T) -> usize {
 }
 
 trait Print {
-    fn print(&self, printer: &mut Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error>;
-    fn print_flex_tail(&self, _printer: &mut Printer, _buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { Ok(()) }
-    fn print_array_prefix(_printer: &mut Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { Ok(()) }
-    fn print_array_delim(printer: &mut Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { printer.write(b", ") }
-    fn print_array_suffix(_printer: &mut Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { Ok(()) }
+    fn print(&self, printer: &Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error>;
+    fn print_flex_tail(&self, _printer: &Printer, _buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { Ok(()) }
+    fn print_array_prefix(_printer: &Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { Ok(()) }
+    fn print_array_delim(printer: &Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { printer.write(b", ") }
+    fn print_array_suffix(_printer: &Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> { Ok(()) }
     fn flex_tail_size(&self) -> usize { 0 }
     fn flex_tail_offset(&self) -> usize { 0 }
     fn total_size(&self) -> usize where Self: Sized { std::mem::size_of::<Self>() }
@@ -135,23 +135,23 @@ pub struct Printer {
 }
 
 impl Printer {
-    fn write(&mut self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
+    fn write(&self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
         self.writer.write(buf)?;
         Ok(())
     }
 
-    fn flush_line(&mut self) -> std::result::Result<(), std::io::Error> {
+    fn flush_line(&self) -> std::result::Result<(), std::io::Error> {
         self.writer.flush_line()
     }
 
-    fn peek_vec(&mut self, addr: types::Ptr, size: usize, pid: types::Pid) -> std::result::Result<Vec<u8>, std::io::Error> {
+    fn peek_vec(&self, addr: types::Ptr, size: usize, pid: types::Pid) -> std::result::Result<Vec<u8>, std::io::Error> {
         let size = std::cmp::min(4096 as usize, size);
         let mut buf = Vec::<u8>::with_capacity(size);
         peek::peek_vec(pid, addr, &mut buf, size)?;
         Ok(buf)
     }
 
-    fn peek_vec_align<T>(&mut self, addr: types::Ptr, size: usize, pid: types::Pid) -> std::result::Result<Vec<u8>, std::io::Error> {
+    fn peek_vec_align<T>(&self, addr: types::Ptr, size: usize, pid: types::Pid) -> std::result::Result<Vec<u8>, std::io::Error> {
         let elem = (size + std::mem::size_of::<T>() - 1) / std::mem::size_of::<T>();
         let buf = Vec::<T>::with_capacity(elem);
         let mut buf = std::mem::ManuallyDrop::new(buf);
@@ -160,7 +160,7 @@ impl Printer {
         Ok(buf)
     }
 
-    fn write_width(&mut self, buf: &[u8], n: usize) -> std::result::Result<(), std::io::Error> {
+    fn write_width(&self, buf: &[u8], n: usize) -> std::result::Result<(), std::io::Error> {
         const SPACE: [u8; 20] = [' ' as u8; 20];
         let len = buf.len();
         let pad_len = std::cmp::min(SPACE.len(), if len < n { n - len } else { 0 });
@@ -168,7 +168,7 @@ impl Printer {
         self.write(buf)
     }
 
-    fn write_hex_char(&mut self, hex: u8) -> std::result::Result<(), std::io::Error> {
+    fn write_hex_char(&self, hex: u8) -> std::result::Result<(), std::io::Error> {
         const TABLE: [&'static str; 256] = [
             r#"\x00"#, r#"\x01"#, r#"\x02"#, r#"\x03"#, r#"\x04"#, r#"\x05"#, r#"\x06"#, r#"\x07"#, r#"\x08"#, r#"\x09"#, r#"\x0a"#, r#"\x0b"#, r#"\x0c"#, r#"\x0d"#, r#"\x0e"#, r#"\x0f"#,
             r#"\x10"#, r#"\x11"#, r#"\x12"#, r#"\x13"#, r#"\x14"#, r#"\x15"#, r#"\x16"#, r#"\x17"#, r#"\x18"#, r#"\x19"#, r#"\x1a"#, r#"\x1b"#, r#"\x1c"#, r#"\x1d"#, r#"\x1e"#, r#"\x1f"#,
@@ -190,7 +190,7 @@ impl Printer {
         self.write(TABLE[hex as usize].as_bytes())
     }
 
-    fn write_hex(&mut self, hex: u8) -> std::result::Result<(), std::io::Error> {
+    fn write_hex(&self, hex: u8) -> std::result::Result<(), std::io::Error> {
         const TABLE: [&'static str; 256] = [
             r#"00"#, r#"01"#, r#"02"#, r#"03"#, r#"04"#, r#"05"#, r#"06"#, r#"07"#, r#"08"#, r#"09"#, r#"0a"#, r#"0b"#, r#"0c"#, r#"0d"#, r#"0e"#, r#"0f"#,
             r#"10"#, r#"11"#, r#"12"#, r#"13"#, r#"14"#, r#"15"#, r#"16"#, r#"17"#, r#"18"#, r#"19"#, r#"1a"#, r#"1b"#, r#"1c"#, r#"1d"#, r#"1e"#, r#"1f"#,
@@ -212,17 +212,17 @@ impl Printer {
         self.write(TABLE[hex as usize].as_bytes())
     }
 
-    fn write_hex_str_dump(&mut self, hex: &[u8]) -> std::result::Result<(), std::io::Error> {
+    fn write_hex_str_dump(&self, hex: &[u8]) -> std::result::Result<(), std::io::Error> {
         for h in hex.iter() { self.write_hex_char(*h)?; }
         Ok(())
     }
 
-    fn write_as_hex(&mut self, hex: &[u8]) -> std::result::Result<(), std::io::Error> {
+    fn write_as_hex(&self, hex: &[u8]) -> std::result::Result<(), std::io::Error> {
         for h in hex.iter() { self.write_hex(*h)?; }
         Ok(())
     }
 
-    fn write_head_graph_ascii<'a>(&mut self, buf: &'a [u8]) -> std::result::Result<&'a [u8], std::io::Error> {
+    fn write_head_graph_ascii<'a>(&self, buf: &'a [u8]) -> std::result::Result<&'a [u8], std::io::Error> {
         for i in 0..buf.len()  {
             if buf[i] < 0x20 || buf[i] > 0x7e {
                 self.write(&buf[0..i])?;
@@ -233,7 +233,7 @@ impl Printer {
         Ok(&buf[buf.len()..])
     }
 
-    fn write_head_non_graph_ascii_as_hex<'a>(&mut self, buf: &'a [u8]) -> std::result::Result<&'a [u8], std::io::Error> {
+    fn write_head_non_graph_ascii_as_hex<'a>(&self, buf: &'a [u8]) -> std::result::Result<&'a [u8], std::io::Error> {
         for i in 0..buf.len() {
             if buf[i] < 0x20 || buf[i] > 0x7e {
                 self.write_hex_char(buf[i])?;
@@ -244,7 +244,7 @@ impl Printer {
         Ok(&buf[buf.len()..])
     }
 
-    fn write_graph_ascii_or_hex(&mut self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
+    fn write_graph_ascii_or_hex(&self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
         let mut buf = buf;
         loop {
             if buf.len() == 0 { break; }
@@ -255,7 +255,7 @@ impl Printer {
         Ok(())
     }
 
-    fn write_maybe_ascii(&mut self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
+    fn write_maybe_ascii(&self, buf: &[u8]) -> std::result::Result<(), std::io::Error> {
         match buf.iter().find(|x| (**x == 0x00 || **x > 0x7e)) {
             Some(_) => self.write_hex_str_dump(buf),
             None => self.write_graph_ascii_or_hex(buf),
@@ -263,24 +263,24 @@ impl Printer {
     }
 
     #[allow(dead_code)]
-    fn peek_write_graph_ascii_or_hex(&mut self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_graph_ascii_or_hex(&self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let buf = self.peek_vec(addr, size, pid)?;
         self.write_graph_ascii_or_hex(buf.as_slice())
     }
 
-    fn peek_write_maybe_ascii(&mut self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_maybe_ascii(&self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let buf = self.peek_vec(addr, size, pid)?;
         self.write_maybe_ascii(buf.as_slice())
     }
 
-    fn peek_write_maybe_ascii_str(&mut self, addr: types::Ptr, size: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_maybe_ascii_str(&self, addr: types::Ptr, size: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"\"")?;
         self.peek_write_maybe_ascii(addr, size, pid, e)?;
         self.write(b"\"")?;
         Ok(())
     }
 
-    fn peek_write_as_hex(&mut self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_as_hex(&self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if addr == 0 {
             self.write(b"NULL")?;
         } else {
@@ -292,20 +292,20 @@ impl Printer {
         Ok(())
     }
 
-    fn peek_write(&mut self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write(&self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let buf = self.peek_vec(addr, size, pid)?;
         self.write(buf.as_slice())
     }
 
-    fn write_number_as_pointer<T: number::ToPtrString>(&mut self, value: T) -> std::result::Result<(), std::io::Error> {
+    fn write_number_as_pointer<T: number::ToPtrString>(&self, value: T) -> std::result::Result<(), std::io::Error> {
         self.write(value.ptoa().as_bytes())
     }
 
-    fn write_number_zero_fill<T: number::ToPtrString>(&mut self, value: T) -> std::result::Result<(), std::io::Error> {
+    fn write_number_zero_fill<T: number::ToPtrString>(&self, value: T) -> std::result::Result<(), std::io::Error> {
         self.write(value.ptoa().as_bytes())
     }
 
-    fn write_number<T: number::ToString>(&mut self, value: T, fmt: &FORMATS) -> std::result::Result<(), std::io::Error> {
+    fn write_number<T: number::ToString>(&self, value: T, fmt: &FORMATS) -> std::result::Result<(), std::io::Error> {
         match fmt {
             FORMATS::HEX => self.write(value.htoa().as_bytes()),
             FORMATS::DEC => self.write(value.dtoa().as_bytes()),
@@ -313,7 +313,7 @@ impl Printer {
         }
     }
 
-    fn write_number_array<T: number::ToString + Copy>(&mut self, value: &[T], fmt: &FORMATS) -> std::result::Result<(), std::io::Error> {
+    fn write_number_array<T: number::ToString + Copy>(&self, value: &[T], fmt: &FORMATS) -> std::result::Result<(), std::io::Error> {
         self.write(b"{")?;
         for (i,v) in value.iter().enumerate() {
             if i != 0 {
@@ -325,7 +325,7 @@ impl Printer {
         Ok(())
     }
 
-    fn write_enum<T: PartialEq + number::ToString>(&mut self, value: T, tbl: &[(T, &'static str)]) -> std::result::Result<(), std::io::Error> {
+    fn write_enum<T: PartialEq + number::ToString>(&self, value: T, tbl: &[(T, &'static str)]) -> std::result::Result<(), std::io::Error> {
         for (v,n) in tbl.iter() {
             if value == *v {
                 return self.write(n.as_bytes());
@@ -334,7 +334,7 @@ impl Printer {
         self.write_number(value, &FORMATS::HEX)
     }
 
-    fn write_mask_enum<T>(&mut self, value: T, tbl: &[(T, &'static str)]) -> std::result::Result<(), std::io::Error>
+    fn write_mask_enum<T>(&self, value: T, tbl: &[(T, &'static str)]) -> std::result::Result<(), std::io::Error>
     where
         T: number::ToString + From<u8> + Copy + PartialEq + std::ops::BitAnd<Output = T> + std::ops::BitXor<Output = T>,
     {
@@ -359,14 +359,14 @@ impl Printer {
         Ok(())
     }
 
-    fn peek_write_str_null_sentinel(&mut self, addr: types::Ptr, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_str_null_sentinel(&self, addr: types::Ptr, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"\"")?;
         self.write_graph_ascii_or_hex(&peek::peek_until_null(pid, addr)?)?;
         self.write(b"\"")?;
         Ok(())
     }
 
-    fn peek_write_execve_str_args(&mut self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_execve_str_args(&self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"{")?;
         let mut addr = addr;
         loop {
@@ -387,20 +387,20 @@ impl Printer {
         self.write(b"}")
     }
 
-    fn write_struct_with_tail<T: Print>(&mut self, data: &T, tail: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_struct_with_tail<T: Print>(&self, data: &T, tail: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"{")?;
         data.print(self, pid, e)?;
         data.print_flex_tail(self, &tail, pid, e)?;
         self.write(b"}")
     }
 
-    fn write_struct_none_tail<T: Print>(&mut self, data: &T, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_struct_none_tail<T: Print>(&self, data: &T, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"{")?;
         data.print(self, pid, e)?;
         self.write(b"}")
     }
 
-    fn write_struct_from_buf<T: Print>(&mut self, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<usize, std::io::Error> {
+    fn write_struct_from_buf<T: Print>(&self, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<usize, std::io::Error> {
         if buf.len() < std::mem::size_of::<T>() {
             self.write(b"{}")?;
             Ok(buf.len())
@@ -419,7 +419,7 @@ impl Printer {
         }
     }
 
-    fn peek_write_struct_impl<T: Print>(&mut self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<usize, std::io::Error> {
+    fn peek_write_struct_impl<T: Print>(&self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<usize, std::io::Error> {
         if addr == 0 {
             self.write(b"NULL")?;
             Ok(0)
@@ -437,12 +437,12 @@ impl Printer {
         }
     }
 
-    fn peek_write_struct<T: Print>(&mut self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_struct<T: Print>(&self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.peek_write_struct_impl::<T>(addr, pid, e)?;
         Ok(())
     }
 
-    fn peek_write_bit_struct_impl<T: Print, U: Print>(&mut self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<usize, std::io::Error> {
+    fn peek_write_bit_struct_impl<T: Print, U: Print>(&self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<usize, std::io::Error> {
         if e.is_64() {
             self.peek_write_struct_impl::<T>(addr, pid, e)
         } else {
@@ -450,12 +450,12 @@ impl Printer {
         }
     }
 
-    fn peek_write_bit_struct<T: Print, U: Print>(&mut self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_bit_struct<T: Print, U: Print>(&self, addr: types::Ptr, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.peek_write_bit_struct_impl::<T, U>(addr, pid, e)?;
         Ok(())
     }
 
-    fn peek_write_struct_array<T: Print>(&mut self, addr: types::Ptr, elem: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_struct_array<T: Print>(&self, addr: types::Ptr, elem: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if addr == 0 {
             self.write(b"NULL")
         } else {
@@ -463,7 +463,7 @@ impl Printer {
         }
     }
 
-    fn write_flex_tail_struct_array_from_buf<T: Print>(&mut self, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_flex_tail_struct_array_from_buf<T: Print>(&self, buf: &[u8], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let mut len = 0;
         let bytes = buf.len();
         self.write(b"{")?;
@@ -479,7 +479,7 @@ impl Printer {
         self.write(b"}")
     }
 
-    fn write_struct_array<T: Print>(&mut self, array: &[T], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_struct_array<T: Print>(&self, array: &[T], pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"{")?;
         for (index, elem) in array.iter().enumerate() {
             if index != 0 {
@@ -493,7 +493,7 @@ impl Printer {
         self.write(b"}")
     }
 
-    fn peek_write_flex_tail_struct_array<T: Print>(&mut self, addr: types::Ptr, bytes: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn peek_write_flex_tail_struct_array<T: Print>(&self, addr: types::Ptr, bytes: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if addr == 0 {
             self.write(b"NULL")
         } else {
@@ -502,9 +502,9 @@ impl Printer {
         }
     }
 
-    fn peek_write_callback<T, U>(&mut self, addr: types::Ptr, size: usize, cb: U, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error>
+    fn peek_write_callback<T, U>(&self, addr: types::Ptr, size: usize, cb: U, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error>
     where
-        U: Fn(&mut Printer, &[u8], types::Pid, &peek::SyscallSummery) -> std::result::Result<(), std::io::Error>
+        U: Fn(&Printer, &[u8], types::Pid, &peek::SyscallSummery) -> std::result::Result<(), std::io::Error>
     {
         if addr == 0 {
             self.write(b"NULL")
@@ -514,7 +514,7 @@ impl Printer {
         }
     }
 
-    fn write_any_type(&mut self, value: u64, print: &TYPES, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_any_type(&self, value: u64, print: &TYPES, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let res = match print {
             TYPES::U8(fmt) => { self.write_number(value as u8, fmt) },
             TYPES::U16(fmt) => { self.write_number(value as u16, fmt) },
@@ -638,7 +638,7 @@ impl Printer {
         Ok(())
     }
 
-    fn write_header_suf(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_header_suf(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write_width(pid.dtoa().as_bytes(), 6)?;
         self.write(b":")?;
         self.write_width(e.sysnum().dtoa().as_bytes(), 6)?;
@@ -646,18 +646,18 @@ impl Printer {
         self.write_width(e.sysname().as_bytes(), 20)
     }
 
-    fn write_entry_header(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_entry_header(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"in  [")?;
         self.write_header_suf(pid, e)
     }
 
-    fn write_exit_header(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_exit_header(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write(b"out [")?;
         self.write_header_suf(pid, e)?;
         self.write(b"(...) = ")
     }
 
-    fn write_args_impl(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_args_impl(&self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let a = e.args();
         let simple = conf.is_simple();
         let simple_type = TYPES::U64(FORMATS::HEX);
@@ -673,7 +673,7 @@ impl Printer {
         Ok(())
     }
 
-    fn dump_args(&mut self, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn dump_args(&self, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let a = e.args();
         for i in 0..a.len() {
             if i != 0 {
@@ -684,7 +684,7 @@ impl Printer {
         Ok(())
     }
 
-    fn write_ret_args_impl(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_ret_args_impl(&self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let a = e.args();
         let simple = conf.is_simple();
         let simple_type = TYPES::U64(FORMATS::HEX);
@@ -700,7 +700,7 @@ impl Printer {
         Ok(())
     }
 
-    fn is_need_peek_for_write_ret_args(&mut self, _pid: types::Pid, e: &peek::SyscallSummery) -> bool {
+    fn is_need_peek_for_write_ret_args(&self, _pid: types::Pid, e: &peek::SyscallSummery) -> bool {
         let conf = self.conf.get_print_info_for_ret_args(e.uni_sysnum());
         if !conf.is_print() {
             false
@@ -709,7 +709,7 @@ impl Printer {
         }
     }
 
-    fn write_ret_args(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_ret_args(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let conf = self.conf.get_print_info_for_ret_args(e.uni_sysnum());
         if conf.is_skip() {
             Ok(())
@@ -718,7 +718,7 @@ impl Printer {
         }
     }
 
-    fn write_errno(&mut self, err: std::io::Error, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_errno(&self, err: std::io::Error, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         match err.raw_os_error() {
             Some(r) if r >= 0 => errno::write_errno(self, r as u64, e),
             Some(r) if r < 0 => errno::write_errno(self, r.wrapping_abs() as u64, e),
@@ -726,7 +726,7 @@ impl Printer {
         }
     }
 
-    fn write_ret_impl(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_ret_impl(&self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let print = conf.get_print_info(e.is_64());
         let print_type = if conf.is_simple() { TYPES::U64(FORMATS::HEX) } else { print.ret };
         self.write_exit_header(pid, e)?;
@@ -740,7 +740,7 @@ impl Printer {
         self.flush_line()
     }
 
-    fn write_syscall_exit_and_cont(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_syscall_exit_and_cont(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         match self.conf.get_print_info(e.uni_sysnum()) {
             p if p.is_skip() => {
                 let _r = peek::cont_process(pid);
@@ -759,7 +759,7 @@ impl Printer {
         }
     }
 
-    fn write_syscall_args(&mut self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_syscall_args(&self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         self.write_entry_header(pid, e)?;
         self.write(b"(")?;
         self.write_args_impl(conf, pid, e)?;
@@ -768,7 +768,7 @@ impl Printer {
         Ok(())
     }
 
-    fn write_syscall_entry_and_cont(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn write_syscall_entry_and_cont(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         match self.conf.get_print_info(e.uni_sysnum()) {
             p if p.is_skip() => {
                 peek::cont_process(pid)
@@ -804,7 +804,7 @@ impl Printer {
     /// # Arguments
     /// * `pid` - A process ID of log output target
     /// * `e` - Syscall summery of log output target
-    pub fn output_and_cont(&mut self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    pub fn output_and_cont(&self, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         if e.is_entry() {
             self.write_syscall_entry_and_cont(pid, e)
         } else  {

@@ -39,7 +39,7 @@ macro_rules! impl_print_null_sentinel_str {
 }
 
 impl crate::Print for new_utsname {
-    fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         impl_print_null_sentinel_str!(self, printer, sysname, b".sysname = ");
         impl_print_null_sentinel_str!(self, printer, nodename, b", .nodename = ");
         impl_print_null_sentinel_str!(self, printer, release, b", .release = ");
@@ -53,7 +53,7 @@ impl crate::Print for new_utsname {
 macro_rules! old_utsname_impl_print {
     ($type:ty) => {
         impl crate::Print for $type {
-            fn print(&self, printer: &mut crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+            fn print(&self, printer: &crate::Printer, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 impl_print_null_sentinel_str!(self, printer, sysname, b".sysname = ");
                 impl_print_null_sentinel_str!(self, printer, nodename, b", .nodename = ");
                 impl_print_null_sentinel_str!(self, printer, release, b", .release = ");

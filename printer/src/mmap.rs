@@ -1,5 +1,5 @@
 
-pub fn write_prot(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_prot(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     let value = value as u32;
     if value == 0 {
         printer.write(b"PROT_NONE")
@@ -8,7 +8,7 @@ pub fn write_prot(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSum
     }
 }
 
-pub fn write_flag(printer: &mut crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+pub fn write_flag(printer: &crate::Printer, value: u64, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
     let value = value as u32;
     if value == 0 {
         printer.write(b"0")
