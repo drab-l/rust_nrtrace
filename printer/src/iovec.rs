@@ -18,10 +18,10 @@ macro_rules! iovec_impl_print {
         impl crate::Print for $type {
             fn print(&self, printer: &mut crate::Printer, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
                 printer.write(b".io_base = ")?;
-                if let crate::config::PrivData::IOVEC(s) = printer.prv_data {
+                if let crate::config::PrivData::IOVEC(s) = printer.prv_data.get() {
                     let min = std::cmp::min(s, self.iov_len as usize);
                     printer.peek_write_maybe_ascii_str(self.iov_base as types::Ptr, min, pid, e)?;
-                    printer.prv_data = crate::config::PrivData::IOVEC(s - min);
+                    printer.prv_data.set(crate::config::PrivData::IOVEC(s - min));
                 } else {
                     printer.peek_write_maybe_ascii_str(self.iov_base as types::Ptr, self.iov_len as usize, pid, e)?;
                 }

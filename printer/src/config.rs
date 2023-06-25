@@ -48,6 +48,7 @@ struct PrintConf {
     conf: CONF,
 }
 
+#[derive(Copy, Clone)]
 pub enum PrivData {
     NONE,
     IOVEC(usize),

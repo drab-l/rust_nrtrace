@@ -131,7 +131,7 @@ trait Print {
 pub struct Printer {
     writer: logger::Logger,
     conf: config::Config,
-    prv_data: config::PrivData,
+    prv_data: std::cell::Cell<config::PrivData>,
 }
 
 impl Printer {
@@ -532,18 +532,18 @@ impl Printer {
             TYPES::USIZE(fmt) => { print_bit_number!(self, value, USizeT, fmt, e) },
 
             TYPES::U64LOW => {
-                self.prv_data = config::PrivData::U64LOW(value);
+                self.prv_data.set(config::PrivData::U64LOW(value));
                 self.write(b"...")
             },
             TYPES::U64HIGH(fmt) => {
                 let hi = value;
-                if let config::PrivData::U64LOW(low) = self.prv_data {
+                if let config::PrivData::U64LOW(low) = self.prv_data.get() {
                     let (hi, _) = hi.overflowing_shl(types::BITS as u32);
                     let (v, _) = hi.overflowing_add(low);
-                    self.prv_data = config::PrivData::NONE;
+                    self.prv_data.set(config::PrivData::NONE);
                     self.write_number(v, fmt)
                 } else {
-                    self.prv_data = config::PrivData::NONE;
+                    self.prv_data.set(config::PrivData::NONE);
                     self.write_number(hi, fmt)
                 }
             },
@@ -579,9 +579,9 @@ impl Printer {
             TYPES::IoctlReqest => { self.write_number(value, &FORMATS::HEX) },
             TYPES::IovecPtrLenArg3 => { peek_write_bit_struct_array!(self, value, iovec::iovec, iovec::compat_iovec, e.argn(peek::Arg::THR), pid, e) },
             TYPES::IovecPtrLenArg3BufLenArgR => {
-                self.prv_data = config::PrivData::IOVEC(e.return_value()? as usize);
+                self.prv_data.set(config::PrivData::IOVEC(e.return_value()? as usize));
                 let r = peek_write_bit_struct_array!(self, value, iovec::iovec, iovec::compat_iovec, e.argn(peek::Arg::THR), pid, e);
-                self.prv_data = config::PrivData::NONE;
+                self.prv_data.set(config::PrivData::NONE);
                 r
             },
             TYPES::LseekWhence => { open::write_lseek_whence(self, value, e) },
@@ -590,9 +590,9 @@ impl Printer {
             TYPES::MmapProt => { mmap::write_prot(self, value, e) },
             TYPES::MsghdrPtr => { peek_write_bit_struct!(self, value, socket::msghdr, socket::compat_msghdr, pid, e) },
             TYPES::MsghdrPtrBufLenArgR => {
-                self.prv_data = config::PrivData::IOVEC(e.return_value()? as usize);
+                self.prv_data.set(config::PrivData::IOVEC(e.return_value()? as usize));
                 let r = peek_write_bit_struct!(self, value, socket::msghdr, socket::compat_msghdr, pid, e);
-                self.prv_data = config::PrivData::NONE;
+                self.prv_data.set(config::PrivData::NONE);
                 r
             },
             TYPES::NewfstatatFlag => { stat::write_newfstatat_flags(self, value, e) },
@@ -796,7 +796,7 @@ impl Printer {
     pub fn new() -> Self {
         let writer = logger::Logger::default();
         let conf = config::Config::new();
-        let prv_data = config::PrivData::NONE;
+        let prv_data = std::cell::Cell::new(config::PrivData::NONE);
         Printer{writer, conf, prv_data}
     }
 
