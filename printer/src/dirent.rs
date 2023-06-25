@@ -28,7 +28,8 @@ impl crate::Print for linux_dirent64 {
 
     fn print_flex_tail(&self, printer: &mut crate::Printer, buf: &[u8], _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         printer.write(b", .d_name = \"")?;
-        printer.write(buf)?;
+        let n = buf.iter().position(|x| *x == 0).unwrap_or(buf.len());
+        printer.write(&buf[..n])?;
         printer.write(b"\"")?;
         Ok(())
     }
