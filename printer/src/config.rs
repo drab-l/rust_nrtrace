@@ -8,6 +8,7 @@ pub enum TYPES {
     SKIP, NONE, UNDEF,
     U8(FORMATS), I8(FORMATS), U16(FORMATS), I16(FORMATS), U32(FORMATS), I32(FORMATS), U64(FORMATS), I64(FORMATS),
     INT(FORMATS), UINT(FORMATS), ULONG(FORMATS), LONG(FORMATS), USIZE(FORMATS), SSIZE(FORMATS), PID,
+    U64LOW, U64HIGH(FORMATS),
     AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall,
     PTR,
     IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
@@ -18,19 +19,7 @@ pub enum TYPES {
 
 impl TYPES {
     pub fn is_need_peek(&self) -> bool {
-        match self {
-            SKIP | NONE | UNDEF |
-            U8(_) | I8(_) | U16(_) | I16(_) | U32(_) | I32(_) | U64(_) | I64(_) |
-            INT(_) | UINT(_) | ULONG(_) | LONG(_) | USIZE(_) | SSIZE(_) | PID |
-            AccessatFlag | AtFlag | Clockid | DirFd | EpollctlOp | FdFlag | IoctlReqest | LseekWhence | MadviseAdvice | MmapFlag | MmapProt | NewfstatatFlag | OpenFlag | RenameFlag | RlimitResource | SendFlag | SocketDomain | SocketFlag | SocketType | SocketcallCall |
-            PTR
-            => false,
-            IntPtr(_) | I64Ptr(_) | StrPtr | StrPtrLenArgR | ArgsPtr | IntArrayPtrLen2 |
-            EpolleventPtr | EpolleventArrayPtrLenArgR | FdsetPtrArg1 | IovecPtrLenArg3 | IovecPtrLenArg3BufLenArgR | Linuxdirent64PtrLenArgR | MsghdrPtr | MsghdrPtrBufLenArgR |
-            OldoldutsnamePtr | OldutsnamePtr | Rlimit64Ptr | RlimitPtr | SockaddrPtrLenArg3 | SockaddrPtrLenArg3Ptr | SocketcallArgPtr | Statfs64Ptr | StatfsPtr | StatPtr | StatxPtr | SysinfoPtr | TimespecPtr | TimevalPtr | TimexPtr | TimezonePtr | UtsnamePtr |
-            AsciiOrHexPtrLenArg3 | AsciiOrHexPtrLenArgR
-            => true,
-        }
+        *self > PTR
     }
 }
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
@@ -62,6 +51,7 @@ struct PrintConf {
 pub enum PrivData {
     NONE,
     IOVEC(usize),
+    U64LOW(u64),
 }
 
 pub struct Config {
@@ -176,6 +166,9 @@ define_print_info_all_fmt_type!(SSIZEHEX, SSIZEDEC, SSIZEOCT, SSIZE);
 define_print_info_all_fmt_type!(OFFHEX, OFFDEC, OFFOCT, LONG);
 define_print_info_all_fmt_type!(LOFFHEX, LOFFDEC, LOFFOCT, I64);
 
+const LOFFLOW: TYPES = TYPES::U64LOW;
+define_print_info_all_fmt_type!(LOFFHIGHHEX, LOFFHIGHDEC, LOFFHIGHOCT, U64HIGH);
+
 define_print_info_all_fmt_type!(INTHEX_PTR, INTDEC_PTR, INTOCT_PTR, IntPtr);
 define_print_info_all_fmt_type!(LOFFHEX_PTR, LOFFDEC_PTR, LOFFOCT_PTR, I64Ptr);
 
@@ -270,13 +263,13 @@ define_syscall_print_info!(PIPE2, INTDEC, PTR, FdFlag);
 define_syscall_print_info!(PRLIMIT64, INTDEC, PID, RlimitResource, Rlimit64Ptr, PTR);
 //define_syscall_print_info!(PREAD, SSIZEDEC, UINTDEC, PTR, USIZEDEC, OFFDEC);
 define_syscall_print_info!(PREAD64, SSIZEDEC, UINTDEC, PTR, USIZEDEC, LOFFDEC);
-define_syscall_print_info!(PREADV, SSIZEDEC, UINTDEC, PTR, INTDEC, OFFDEC);
-define_syscall_print_info!(PREADV2, SSIZEDEC, UINTDEC, PTR, INTDEC, OFFDEC, INTDEC);
+define_syscall_print_info!(PREADV, SSIZEDEC, UINTDEC, PTR, ULONGDEC, LOFFLOW, LOFFHIGHDEC);
+define_syscall_print_info!(PREADV2, SSIZEDEC, UINTDEC, PTR, ULONGDEC, LOFFLOW, LOFFHIGHDEC, INTHEX);
 define_syscall_print_info!(PSELECT, INTDEC, INTDEC, FdsetPtrArg1, FdsetPtrArg1, FdsetPtrArg1, TimespecPtr, PTR);
 //define_syscall_print_info!(PWRITE, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
-//define_syscall_print_info!(PWRITE64, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, LOFFDEC);
-//define_syscall_print_info!(PWRITEV, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC);
-//define_syscall_print_info!(PWRITEV2, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, OFFDEC, INTDEC);
+define_syscall_print_info!(PWRITE64, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC, LOFFDEC);
+define_syscall_print_info!(PWRITEV, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, ULONGDEC, LOFFLOW, LOFFHIGHDEC);
+define_syscall_print_info!(PWRITEV2, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, ULONGDEC, LOFFLOW, LOFFHIGHDEC, INTHEX);
 define_syscall_print_info!(READ, SSIZEDEC, UINTDEC, PTR, USIZEDEC);
 define_syscall_print_info!(READLINK, INTDEC, StrPtr, PTR, USIZEDEC);
 define_syscall_print_info!(READLINKAT, DirFd, INTDEC, StrPtr, PTR, USIZEDEC);
@@ -436,6 +429,9 @@ impl SyscallPrinter for NR {
             NR::sys_preadv2 => &PREADV2,
             NR::sys_prlimit64 => &PRLIMIT64,
             NR::sys_pselect6 => &PSELECT,
+            NR::sys_pwrite64 => &PWRITE64,
+            NR::sys_pwritev => &PWRITEV,
+            NR::sys_pwritev2 => &PWRITEV2,
             NR::sys_read => &READ,
             NR::sys_readlink => &READLINK,
             NR::sys_readlinkat => &READLINKAT,
@@ -487,7 +483,7 @@ impl SyscallPrinter for NR {
             NR::sys_oldolduname => &RET_OLDOLDUNAME,
             NR::sys_pipe | NR::sys_pipe2 => &RET_PIPE,
             NR::sys_prlimit64 => &RET_PRLIMIT64,
-            NR::sys_read | NR::sys_pread64 => &RET_READ,
+            NR::sys_pread64 | NR::sys_read => &RET_READ,
             NR::sys_readlink => &RET_READLINK,
             NR::sys_readlinkat => &RET_READLINKAT,
             NR::sys_readv | NR::sys_preadv | NR::sys_preadv2 => &RET_READV,

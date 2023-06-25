@@ -531,6 +531,22 @@ impl Printer {
             TYPES::SSIZE(fmt) => { print_bit_number!(self, value, SSizeT, fmt, e) },
             TYPES::USIZE(fmt) => { print_bit_number!(self, value, USizeT, fmt, e) },
 
+            TYPES::U64LOW => {
+                self.prv_data = config::PrivData::U64LOW(value);
+                self.write(b"...")
+            },
+            TYPES::U64HIGH(fmt) => {
+                let hi = value;
+                if let config::PrivData::U64LOW(low) = self.prv_data {
+                    let (hi, _) = hi.overflowing_shl(types::BITS as u32);
+                    let (v, _) = hi.overflowing_add(low);
+                    self.prv_data = config::PrivData::NONE;
+                    self.write_number(v, fmt)
+                } else {
+                    self.prv_data = config::PrivData::NONE;
+                    self.write_number(hi, fmt)
+                }
+            },
             TYPES::PID => { self.write_number(value as types::Pid, &FORMATS::DEC) },
             TYPES::PTR => { print_bit_pointer!(self, value, e) },
 
