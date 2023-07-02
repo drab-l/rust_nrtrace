@@ -13,3 +13,5 @@ Option:
     --EE: No print syscall inclusive names, separated comma.
     -s  : Simple print syscalll names, separated comma.
     --ss: Simple print syscall inclusive names, separated comma.
+    -S  : change print format to nopeek tracee memory for spefified name's syscalls, separated comma.
+    --SS: change print format to nopeek tracee memory for inclusive named syscalls, separated comma.
