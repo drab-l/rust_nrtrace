@@ -92,6 +92,10 @@ impl Tracer {
         self.printer.set_simple_by_name(name)
     }
 
+    pub fn set_print_nopeek_by_name(&mut self, name: &str) {
+        self.printer.set_nopeek_by_name(name)
+    }
+
     pub fn set_print_skip_by_include_name(&mut self, name: &str) {
         self.printer.set_skip_by_include_name(name)
     }
@@ -102,6 +106,10 @@ impl Tracer {
 
     pub fn set_print_simple_by_include_name(&mut self, name: &str) {
         self.printer.set_simple_by_include_name(name)
+    }
+
+    pub fn set_print_nopeek_by_include_name(&mut self, name: &str) {
+        self.printer.set_nopeek_by_include_name(name)
     }
 
     pub fn attach_exec_child<T>(&self, cmd: String, args: T) -> Result<types::Pid>

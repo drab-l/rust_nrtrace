@@ -2,6 +2,9 @@
 use arch::sys_uni::NR;
 use TYPES::*;
 
+#[allow(unused_macros)]
+macro_rules! LINE { () => { println!("{}", line!()) } }
+
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum TYPES {
@@ -42,7 +45,7 @@ trait SyscallPrinter {
 }
 
 #[derive(Clone, PartialEq)]
-pub enum CONF { PRINT, SKIP, SIMPLE }
+pub enum CONF { PRINT, SKIP, SIMPLE, NOPEEK }
 struct PrintConf {
     nr: NR,
     conf: CONF,
@@ -65,6 +68,7 @@ impl SyscallPrintConf {
     pub fn is_print(&self) -> bool { self.conf == CONF::PRINT }
     pub fn is_simple(&self) -> bool { self.conf == CONF::SIMPLE }
     pub fn is_skip(&self) -> bool { self.conf == CONF::SKIP }
+    pub fn is_nopeek(&self) -> bool { self.conf == CONF::NOPEEK }
     pub fn is_undef(&self) -> bool { self.print[0].ret == UNDEF }
     pub fn get_print_info(&self, is64: bool) -> &'static SyscallPrintInfoSet {
         if self.print.len() == 1 || is64 { &self.print[0] } else { &self.print[1] }
@@ -82,6 +86,7 @@ impl Config {
             Some(PrintConf{nr:_, conf:CONF::SIMPLE}) => SyscallPrintConf::new(CONF::SIMPLE, nr.get_print_info()),
             Some(PrintConf{nr:_, conf:CONF::SKIP}) => SyscallPrintConf::new(CONF::SKIP, &SKIPPRINT),
             Some(PrintConf{nr:_, conf:CONF::PRINT}) => SyscallPrintConf::new(CONF::PRINT, nr.get_print_info()),
+            Some(PrintConf{nr:_, conf:CONF::NOPEEK}) => SyscallPrintConf::new(CONF::NOPEEK, nr.get_print_info()),
             _ => if self.default.is_some() { self.default.as_ref().unwrap().clone() } else { SyscallPrintConf::new(CONF::PRINT, nr.get_print_info())},
         }
     }
@@ -91,6 +96,7 @@ impl Config {
             Some(PrintConf{nr:_, conf:CONF::SIMPLE}) => SyscallPrintConf::new(CONF::SIMPLE, nr.get_print_info_for_ret_args()),
             Some(PrintConf{nr:_, conf:CONF::SKIP}) => SyscallPrintConf::new(CONF::SKIP, &SKIPPRINT),
             Some(PrintConf{nr:_, conf:CONF::PRINT}) => SyscallPrintConf::new(CONF::PRINT, nr.get_print_info_for_ret_args()),
+            Some(PrintConf{nr:_, conf:CONF::NOPEEK}) => SyscallPrintConf::new(CONF::NOPEEK, nr.get_print_info_for_ret_args()),
             _ => if self.default.is_some() { self.default.as_ref().unwrap().clone() } else { SyscallPrintConf::new(CONF::PRINT, nr.get_print_info_for_ret_args())},
         }
     }
@@ -117,6 +123,12 @@ impl Config {
         }
     }
 
+    pub fn set_nopeek_by_name(&mut self, name: &str) {
+        if let Some((_, nr)) = arch::sys_uni::map.iter().find(|(sys, _)|{ &name == sys }) {
+            self.set_conf(*nr, CONF::NOPEEK);
+        }
+    }
+
     pub fn set_skip_by_include_name(&mut self, name: &str) {
         arch::sys_uni::map.iter().for_each(|(sys, nr)|{
             if sys.contains(name) { self.set_conf(*nr, CONF::SKIP); }
@@ -131,9 +143,13 @@ impl Config {
 
     pub fn set_simple_by_include_name(&mut self, name: &str) {
         arch::sys_uni::map.iter().for_each(|(sys, nr)|{
-            if sys.contains(name) {
-                self.set_conf(*nr, CONF::SIMPLE);
-            }
+            if sys.contains(name) { self.set_conf(*nr, CONF::SIMPLE); }
+        })
+    }
+
+    pub fn set_nopeek_by_include_name(&mut self, name: &str) {
+        arch::sys_uni::map.iter().for_each(|(sys, nr)|{
+            if sys.contains(name) { self.set_conf(*nr, CONF::NOPEEK); }
         })
     }
 

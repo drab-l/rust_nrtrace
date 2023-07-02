@@ -21,6 +21,8 @@ Option:
     --EE: not print inclusive named syscalls, separated comma.
     -s: change print format to simple for spefified name's syscalls, separated comma.
     --ss: change print format to simple for inclusive named syscalls, separated comma.
+    -S: change print format to nopeek tracee memory for spefified name's syscalls, separated comma.
+    --SS: change print format to nopeek tracee memory for inclusive named syscalls, separated comma.
 "#,
         bin
     );
@@ -90,6 +92,14 @@ fn set_print_simple_included_name_syscall(tracer: &mut Tracer, value: &str) {
     tracer.set_print_simple_by_include_name(value);
 }
 
+fn set_print_nopeek_named_syscall(tracer: &mut Tracer, value: &str) {
+    tracer.set_print_nopeek_by_name(value);
+}
+
+fn set_print_nopeek_included_name_syscall(tracer: &mut Tracer, value: &str) {
+    tracer.set_print_nopeek_by_include_name(value);
+}
+
 fn collect_pid_for_attach(tracer: &mut Tracer, value: &str) {
     tracer.attach_running_process(value.parse::<types::Pid>().unwrap()).unwrap_or_else(|_|{});
 }
@@ -120,6 +130,10 @@ fn parse_opt(tracer: &mut Tracer) {
         } else if parse_opt_comma_separated_cb(tracer, &head, &mut args, "-s", set_print_simple_named_syscall) {
             continue;
         } else if parse_opt_comma_separated_cb(tracer, &head, &mut args, "--ss", set_print_simple_included_name_syscall) {
+            continue;
+        } else if parse_opt_comma_separated_cb(tracer, &head, &mut args, "-S", set_print_nopeek_named_syscall) {
+            continue;
+        } else if parse_opt_comma_separated_cb(tracer, &head, &mut args, "--SS", set_print_nopeek_included_name_syscall) {
             continue;
         }
         tracer.attach_exec_child(head, args).unwrap();

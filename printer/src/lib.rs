@@ -661,13 +661,15 @@ impl Printer {
         let a = e.args();
         let simple = conf.is_simple();
         let simple_type = TYPES::U64(FORMATS::HEX);
+        let nopeek_type = TYPES::PTR;
         let print = conf.get_print_info(e.is_64());
         for i in 0..a.len() {
             if print.args[i] == TYPES::NONE { break }
             if i != 0 {
                 self.write(b", ")?;
             }
-            let arg = if simple { &simple_type } else { &print.args[i] };
+            let nopeek = conf.is_nopeek() && print.args[i].is_need_peek();
+            let arg = if simple { &simple_type } else if nopeek { &nopeek_type} else { &print.args[i] };
             self.write_any_type(a[i], &arg, pid, e)?;
         }
         Ok(())
@@ -688,13 +690,15 @@ impl Printer {
         let a = e.args();
         let simple = conf.is_simple();
         let simple_type = TYPES::U64(FORMATS::HEX);
+        let nopeek_type = TYPES::PTR;
         let print = conf.get_print_info(e.is_64());
         for i in 0..a.len() {
             if print.args[i] == TYPES::NONE { continue }
             self.write(b", ")?;
             self.write_number(i, &FORMATS::DEC)?;
             self.write(b": ")?;
-            let arg = if simple { &simple_type } else { &print.args[i] };
+            let nopeek = conf.is_nopeek() && print.args[i].is_need_peek();
+            let arg = if simple { &simple_type } else if nopeek { &nopeek_type} else { &print.args[i] };
             self.write_any_type(a[i], &arg, pid, e)?;
         }
         Ok(())
@@ -703,6 +707,8 @@ impl Printer {
     fn is_need_peek_for_write_ret_args(&self, _pid: types::Pid, e: &peek::SyscallSummery) -> bool {
         let conf = self.conf.get_print_info_for_ret_args(e.uni_sysnum());
         if !conf.is_print() {
+            false
+        } else if conf.is_nopeek() {
             false
         } else {
             conf.get_print_info(e.is_64()).args.iter().any(|x|x.is_need_peek())
@@ -728,7 +734,11 @@ impl Printer {
 
     fn write_ret_impl(&self, conf: &config::SyscallPrintConf, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
         let print = conf.get_print_info(e.is_64());
-        let print_type = if conf.is_simple() { TYPES::U64(FORMATS::HEX) } else { print.ret };
+        let print_type = if conf.is_simple() {
+            TYPES::U64(FORMATS::HEX)
+        } else if conf.is_nopeek() && print.ret.is_need_peek() {
+            TYPES::PTR
+        } else { print.ret };
         self.write_exit_header(pid, e)?;
         match e.return_value() {
             Ok(r) => {
@@ -778,6 +788,10 @@ impl Printer {
                 self.write_entry_header(pid, e)?;
                 self.dump_args(e)?;
                 self.flush_line()
+            },
+            p  if p.is_nopeek() => {
+                let _r = peek::cont_process(pid);
+                self.write_syscall_args(&p, pid, e)
             },
             p  => {
                 if p.get_print_info(e.is_64()).args.iter().any(|x|x.is_need_peek()) {
@@ -838,6 +852,13 @@ impl Printer {
         self.conf.set_simple_by_name(name)
     }
 
+    /// Set to nopeek format output for specified name's syscall
+    /// # Arguments
+    /// * `name` - Target syscall's name
+    pub fn set_nopeek_by_name(&mut self, name: &str) {
+        self.conf.set_nopeek_by_name(name)
+    }
+
     /// Set to skip output for syscall that name contain speccified
     /// # Arguments
     /// * `name` - Target syscall's name
@@ -857,6 +878,13 @@ impl Printer {
     /// * `name` - Target syscall's name
     pub fn set_simple_by_include_name(&mut self, name: &str) {
         self.conf.set_simple_by_include_name(name)
+    }
+
+    /// Set to nopeek format output for syscall that name contain speccified
+    /// # Arguments
+    /// * `name` - Target syscall's name
+    pub fn set_nopeek_by_include_name(&mut self, name: &str) {
+        self.conf.set_nopeek_by_include_name(name)
     }
 
     /// Set log destinaion
