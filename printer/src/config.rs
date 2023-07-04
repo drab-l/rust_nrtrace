@@ -13,6 +13,7 @@ pub enum TYPES {
     INT(FORMATS), UINT(FORMATS), ULONG(FORMATS), LONG(FORMATS), USIZE(FORMATS), SSIZE(FORMATS), PID,
     U64LOW, U64HIGH(FORMATS),
     AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall,
+    IoctlArg,
     PTR,
     IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
     EpolleventPtr, EpolleventArrayPtrLenArgR, FdsetPtrArg1, IovecPtrLenArg3, IovecPtrLenArg3BufLenArgR, Linuxdirent64PtrLenArgR, MsghdrPtr, MsghdrPtrBufLenArgR,
@@ -260,7 +261,7 @@ define_syscall_print_info!(GETRANDOM, SSIZEDEC, PTR, USIZEDEC, INTDEC);
 define_syscall_print_info!(GETTIMEOFDAY, INTDEC, PTR, PTR);
 define_syscall_print_info!(GETXATTR, SSIZEDEC, StrPtr, StrPtr, PTR, USIZEDEC);
 define_syscall_print_info!(INIT_MODULE, INTDEC, PTR, ULONGDEC, StrPtr);
-define_syscall_print_info!(IOCTL, INTDEC, INTDEC, IoctlReqest);
+define_syscall_print_info!(IOCTL, INTDEC, INTDEC, IoctlReqest, IoctlArg);
 define_syscall_print_info!(LSEEK, OFFDEC, INTDEC, OFFDEC, LseekWhence);
 define_syscall_print_info!(MADIVISE, INTDEC, PTR, INTDEC, MadviseAdvice);
 define_syscall_print_info!(MKDIR, INTDEC, StrPtr, INTOCT);
@@ -327,6 +328,7 @@ define_syscall_print_info_for_ret_args!(RET_EPOLL_WAIT, NONE, EpolleventArrayPtr
 define_syscall_print_info_for_ret_args!(RET_FGETXATTR, NONE, NONE, AsciiOrHexPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_GETDENTS64, NONE, Linuxdirent64PtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_GETTIMEOFDAY, TimevalPtr, TimezonePtr);
+define_syscall_print_info_for_ret_args!(RET_IOCTL, NONE, NONE, IoctlArg);
 define_syscall_print_info_for_ret_args!(RET_NANOSLEEP, TimespecPtr, TimespecPtr);
 define_syscall_print_info_for_ret_args!(RET_NEWFSTATAT, NONE, NONE, StatPtr);
 define_syscall_print_info_for_ret_args!(RET_OLDOLDUNAME, OldoldutsnamePtr);
@@ -494,6 +496,7 @@ impl SyscallPrinter for NR {
             NR::sys_fgetxattr | NR::sys_getxattr | NR::sys_lgetxattr=> &RET_FGETXATTR,
             NR::sys_getdents64 => &RET_GETDENTS64,
             NR::sys_gettimeofday => &RET_GETTIMEOFDAY,
+            NR::sys_ioctl => &RET_IOCTL,
             NR::sys_nanosleep => &RET_NANOSLEEP,
             NR::sys_newfstatat => &RET_NEWFSTATAT,
             NR::sys_olduname => &RET_OLDUNAME,

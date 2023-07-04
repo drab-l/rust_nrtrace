@@ -20,6 +20,7 @@ mod uname;
 mod errno;
 mod time;
 mod sys;
+mod ioctl;
 
 use number::ToString;
 use config::{TYPES, FORMATS};
@@ -325,6 +326,15 @@ impl Printer {
         Ok(())
     }
 
+    fn try_write_enum<T: PartialEq>(&self, value: T, tbl: &[(T, &'static str)]) -> std::result::Result<bool, std::io::Error> {
+        for (v,n) in tbl.iter() {
+            if value == *v {
+                self.write(n.as_bytes())?;
+                return Ok(true);
+            }
+        }
+        return Ok(false);
+    }
     fn write_enum<T: PartialEq + number::ToString>(&self, value: T, tbl: &[(T, &'static str)]) -> std::result::Result<(), std::io::Error> {
         for (v,n) in tbl.iter() {
             if value == *v {
@@ -576,7 +586,8 @@ impl Printer {
             TYPES::EpolleventPtr => { peek_write_struct!(self, value, epoll::epoll_event, pid, e) },
             TYPES::EpolleventArrayPtrLenArgR => { peek_write_struct_array!(self, value, epoll::epoll_event, e.return_value()?, pid, e) },
             TYPES::FdFlag => { open::write_fd_flags(self, value, e) },
-            TYPES::IoctlReqest => { self.write_number(value, &FORMATS::HEX) },
+            TYPES::IoctlReqest => { ioctl::write_ioctl_request(self, value) },
+            TYPES::IoctlArg => { ioctl::write_ioctl_arg(self, value, pid, e) },
             TYPES::IovecPtrLenArg3 => { peek_write_bit_struct_array!(self, value, iovec::iovec, iovec::compat_iovec, e.argn(peek::Arg::THR), pid, e) },
             TYPES::IovecPtrLenArg3BufLenArgR => {
                 self.prv_data.set(config::PrivData::IOVEC(e.return_value()? as usize));
