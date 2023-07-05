@@ -1,4 +1,5 @@
 use super::{_IO, _IOR, _IOW};
+use crate::Printer;
 
 #[allow(non_camel_case_types)]
 type tcflag_t = types::UInt;
@@ -94,6 +95,15 @@ const TERMIOS_REQ: [(u32, &'static str); 53] = [
 (TIOCGPKT, "TIOCGPKT"), (TIOCGPTLCK, "TIOCGPTLCK"), (TIOCGEXCL, "TIOCGEXCL"), (TIOCGPTPEER, "TIOCGPTPEER"),
 ];
 
-pub fn write_ioctl_request(printer: &crate::Printer, value: u64) -> std::result::Result<bool, std::io::Error> {
+
+pub const TERMIOS: super::WriteIoctl = super::WriteIoctl { write_ioctl_request, write_ioctl_arg, write_ioctl_arg_nopeek, };
+
+fn write_ioctl_request(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error> {
+    printer.try_write_enum(value as u32, &TERMIOS_REQ)
+}
+fn write_ioctl_arg(printer: &Printer, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<bool, std::io::Error> {
+    printer.try_write_enum(value as u32, &TERMIOS_REQ)
+}
+fn write_ioctl_arg_nopeek(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error> {
     printer.try_write_enum(value as u32, &TERMIOS_REQ)
 }

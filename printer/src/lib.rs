@@ -587,6 +587,7 @@ impl Printer {
             TYPES::EpolleventArrayPtrLenArgR => { peek_write_struct_array!(self, value, epoll::epoll_event, e.return_value()?, pid, e) },
             TYPES::FdFlag => { open::write_fd_flags(self, value, e) },
             TYPES::IoctlReqest => { ioctl::write_ioctl_request(self, value) },
+            TYPES::IoctlArgNoPeek => { ioctl::write_ioctl_arg_nopeek(self, value) },
             TYPES::IoctlArg => { ioctl::write_ioctl_arg(self, value, pid, e) },
             TYPES::IovecPtrLenArg3 => { peek_write_bit_struct_array!(self, value, iovec::iovec, iovec::compat_iovec, e.argn(peek::Arg::THR), pid, e) },
             TYPES::IovecPtrLenArg3BufLenArgR => {
@@ -672,15 +673,14 @@ impl Printer {
         let a = e.args();
         let simple = conf.is_simple();
         let simple_type = TYPES::U64(FORMATS::HEX);
-        let nopeek_type = TYPES::PTR;
         let print = conf.get_print_info(e.is_64());
         for i in 0..a.len() {
             if print.args[i] == TYPES::NONE { break }
             if i != 0 {
                 self.write(b", ")?;
             }
-            let nopeek = conf.is_nopeek() && print.args[i].is_need_peek();
-            let arg = if simple { &simple_type } else if nopeek { &nopeek_type} else { &print.args[i] };
+            let nopeek = conf.is_nopeek();
+            let arg = if simple { &simple_type } else if nopeek { print.args[i].nopeek_type() } else { &print.args[i] };
             self.write_any_type(a[i], &arg, pid, e)?;
         }
         Ok(())
@@ -701,15 +701,13 @@ impl Printer {
         let a = e.args();
         let simple = conf.is_simple();
         let simple_type = TYPES::U64(FORMATS::HEX);
-        let nopeek_type = TYPES::PTR;
         let print = conf.get_print_info(e.is_64());
         for i in 0..a.len() {
             if print.args[i] == TYPES::NONE { continue }
             self.write(b", ")?;
             self.write_number(i, &FORMATS::DEC)?;
             self.write(b": ")?;
-            let nopeek = conf.is_nopeek() && print.args[i].is_need_peek();
-            let arg = if simple { &simple_type } else if nopeek { &nopeek_type} else { &print.args[i] };
+            let arg = if simple { &simple_type } else { &print.args[i] };
             self.write_any_type(a[i], &arg, pid, e)?;
         }
         Ok(())
@@ -730,6 +728,8 @@ impl Printer {
         let conf = self.conf.get_print_info_for_ret_args(e.uni_sysnum());
         if conf.is_skip() {
             Ok(())
+        } else if conf.is_nopeek() {
+            Ok(())
         } else {
             self.write_ret_args_impl(&conf, pid, e)
         }
@@ -747,8 +747,8 @@ impl Printer {
         let print = conf.get_print_info(e.is_64());
         let print_type = if conf.is_simple() {
             TYPES::U64(FORMATS::HEX)
-        } else if conf.is_nopeek() && print.ret.is_need_peek() {
-            TYPES::PTR
+        } else if conf.is_nopeek() {
+            *print.ret.nopeek_type()
         } else { print.ret };
         self.write_exit_header(pid, e)?;
         match e.return_value() {

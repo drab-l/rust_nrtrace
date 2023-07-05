@@ -12,8 +12,8 @@ pub enum TYPES {
     U8(FORMATS), I8(FORMATS), U16(FORMATS), I16(FORMATS), U32(FORMATS), I32(FORMATS), U64(FORMATS), I64(FORMATS),
     INT(FORMATS), UINT(FORMATS), ULONG(FORMATS), LONG(FORMATS), USIZE(FORMATS), SSIZE(FORMATS), PID,
     U64LOW, U64HIGH(FORMATS),
-    AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall,
-    IoctlArg,
+    AccessatFlag, AtFlag, Clockid, DirFd, EpollctlOp, FdFlag, IoctlArgNoPeek, IoctlReqest, LseekWhence, MadviseAdvice, MmapFlag, MmapProt, NewfstatatFlag, OpenFlag, RenameFlag, RlimitResource, SendFlag, SocketDomain, SocketFlag, SocketType, SocketcallCall,
+    IoctlArg, /* maybe peek data */
     PTR,
     IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
     EpolleventPtr, EpolleventArrayPtrLenArgR, FdsetPtrArg1, IovecPtrLenArg3, IovecPtrLenArg3BufLenArgR, Linuxdirent64PtrLenArgR, MsghdrPtr, MsghdrPtrBufLenArgR,
@@ -24,6 +24,15 @@ pub enum TYPES {
 impl TYPES {
     pub fn is_need_peek(&self) -> bool {
         *self > PTR
+    }
+    pub fn nopeek_type(&self) -> &Self {
+        const PTR_: TYPES = PTR;
+        const IOC_: TYPES = IoctlArgNoPeek;
+        match self {
+            r if *r >= PTR => &PTR_,
+            r if *r == IoctlArg => &IOC_,
+            r => r,
+        }
     }
 }
 #[derive(Copy, Clone, PartialEq, PartialOrd)]

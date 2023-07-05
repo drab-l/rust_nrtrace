@@ -25,15 +25,10 @@ const IOC_WRITE: u32 = 1;
 const IOC_READ: u32 = 2;
 
 const fn IOC(dir: u32, type_: u32, nr: u32, size: u32) -> u32 {
-    (dir   << IOC_DIRSHIFT) |
-    (type_ << IOC_TYPESHIFT) |
-    (nr    << IOC_NRSHIFT) |
-    (size  << IOC_SIZESHIFT)
+    (dir << IOC_DIRSHIFT) | (type_ << IOC_TYPESHIFT) | (nr << IOC_NRSHIFT) | (size << IOC_SIZESHIFT)
 }
 
-const fn IOC_TYPECHECK<T>() -> u32 {
-    std::mem::size_of::<T>() as u32
-}
+const fn IOC_TYPECHECK<T>() -> u32 { std::mem::size_of::<T>() as u32 }
 
 const fn IO(type_: u32, nr: u32) -> u32 { IOC(IOC_NONE, type_, nr, 0) }
 const fn IOR(type_: u32, nr: u32, size: u32) -> u32 { IOC(IOC_READ, type_ ,nr , size) }
@@ -49,33 +44,41 @@ const fn _IO<const TYPE: u32, const NR: u32>() -> u32 { IO!(TYPE, NR) }
 const fn _IOR<const TYPE: u32, const NR: u32, SIZE>() -> u32 { IOR!(TYPE, NR, SIZE) }
 const fn _IOW<const TYPE: u32, const NR: u32, SIZE>() -> u32 { IOW!(TYPE, NR, SIZE) }
 const fn _IOWR<const TYPE: u32, const NR: u32, SIZE>() -> u32 { IOWR!(TYPE, NR, SIZE) }
-//const fn IOR_BAD(type_: u32, nr: u32,size)	_IOC(_IOC_READ,(type_),(nr),sizeof(size))
-//const fn IOW_BAD(type_: u32, nr: u32, size)	_IOC(_IOC_WRITE,(type_),(nr),sizeof(size))
-//const fn IOWR_BAD(type_: u32, nr: u32, size)	_IOC(_IOC_READ|_IOC_WRITE,(type_),(nr),sizeof(size))
 
-/* used to decode ioctl numbers.. */
-//#define _IOC_DIR(nr)		(((nr) >> _IOC_DIRSHIFT) & _IOC_DIRMASK)
-//#define _IOC_TYPE(nr)		(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
-//#define _IOC_NR(nr)		(((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)
-//#define _IOC_SIZE(nr)		(((nr) >> _IOC_SIZESHIFT) & _IOC_SIZEMASK)
+pub struct WriteIoctl {
+    write_ioctl_request: fn(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error>,
+    write_ioctl_arg: fn(printer: &Printer, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<bool, std::io::Error>,
+    write_ioctl_arg_nopeek: fn(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error>,
+}
 
-/* ...and for the drivers/sound files... */
-
-//#define IOC_IN		(_IOC_WRITE << _IOC_DIRSHIFT)
-//#define IOC_OUT		(_IOC_READ << _IOC_DIRSHIFT)
-//#define IOC_INOUT	((_IOC_WRITE|_IOC_READ) << _IOC_DIRSHIFT)
-//#define IOCSIZE_MASK	(_IOC_SIZEMASK << _IOC_SIZESHIFT)
-//#define IOCSIZE_SHIFT	(_IOC_SIZESHIFT)
+const WRITER: [WriteIoctl; 1] = [termios::TERMIOS];
 
 pub fn write_ioctl_request(printer: &Printer, value: u64) -> std::result::Result<(), std::io::Error> {
-    if termios::write_ioctl_request(printer, value)? {
-    } else {
-        printer.write_number(value, &FORMATS::HEX)?;
+    for e in WRITER {
+        if (e.write_ioctl_request)(printer, value)? {
+            return Ok(())
+        }
     }
+    printer.write_number(value, &FORMATS::HEX)?;
     Ok(())
 }
 
 pub fn write_ioctl_arg(printer: &Printer, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    for e in WRITER {
+        if (e.write_ioctl_arg)(printer, value, _pid, _e)? {
+            return Ok(())
+        }
+    }
+    printer.write_number(value, &FORMATS::HEX)?;
+    Ok(())
+}
+
+pub fn write_ioctl_arg_nopeek(printer: &Printer, value: u64) -> std::result::Result<(), std::io::Error> {
+    for e in WRITER {
+        if (e.write_ioctl_arg_nopeek)(printer, value)? {
+            return Ok(())
+        }
+    }
     printer.write_number(value, &FORMATS::HEX)?;
     Ok(())
 }
