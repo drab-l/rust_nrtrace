@@ -1,5 +1,9 @@
 use super::{_IO, _IOR, _IOW};
+use crate::FORMATS;
 use crate::Printer;
+
+#[allow(unused_macros)]
+macro_rules! LINE { () => { println!("{}", line!()) } }
 
 #[allow(non_camel_case_types)]
 type tcflag_t = types::UInt;
@@ -20,6 +24,16 @@ struct termios2 {
     c_cc: [cc_t; NCCS],
     c_ispeed: speed_t,
     c_ospeed: speed_t,
+}
+
+#[repr(C)]#[allow(non_camel_case_types)]
+struct termios {
+    c_iflag: tcflag_t,
+    c_oflag: tcflag_t,
+    c_cflag: tcflag_t,
+    c_lflag: tcflag_t,
+    c_line: cc_t,
+    c_cc: [cc_t; NCCS],
 }
 
 const TERMIOS_TYPES: u32 = 'T' as u32;
@@ -101,9 +115,92 @@ pub const TERMIOS: super::WriteIoctl = super::WriteIoctl { write_ioctl_request, 
 fn write_ioctl_request(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error> {
     printer.try_write_enum(value as u32, &TERMIOS_REQ)
 }
-fn write_ioctl_arg(printer: &Printer, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<bool, std::io::Error> {
-    printer.try_write_enum(value as u32, &TERMIOS_REQ)
+fn write_ioctl_arg(printer: &Printer, req: u64, value: u64, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<bool, std::io::Error> {
+    match req as u32 {
+        v if v == TCGETS => if e.is_exit() {
+            printer.peek_write_struct::<termios>(value as types::Ptr, pid, e)?;
+            return Ok(true)
+        },
+        v if v == TCSETS => if e.is_entry() {
+            printer.peek_write_struct::<termios>(value as types::Ptr, pid, e)?;
+            return Ok(true)
+        },
+        v if (v >= TCGETS && v <= TCSBRKP) || ( v >= TIOCSBRK && v<= TIOCGSID) => {
+            printer.write(b"...")?;
+            return Ok(true)
+        },
+        TCGETS2 => if e.is_exit() {
+            printer.peek_write_struct::<termios2>(value as types::Ptr, pid, e)?;
+            return Ok(true)
+        },
+        v if (v >= TCSETS2 && v <= TCSETSF2) => if e.is_entry() {
+            printer.peek_write_struct::<termios2>(value as types::Ptr, pid, e)?;
+            return Ok(true)
+        },
+        TIOCGPTN => if e.is_exit() {
+            printer.peek_write_number::<types::UInt>(value as types::Ptr, &FORMATS::DEC, pid, e)?;
+            return Ok(true)
+        },
+        TIOCSPTLCK | TIOCSIG => if e.is_entry() {
+            printer.peek_write_number::<types::SInt>(value as types::Ptr, &FORMATS::DEC, pid, e)?;
+            return Ok(true)
+        },
+        TIOCGDEV | TIOCGPKT | TIOCGPTLCK | TIOCGEXCL => if e.is_entry() {
+            printer.peek_write_number::<types::SInt>(value as types::Ptr, &FORMATS::DEC, pid, e)?;
+            return Ok(true)
+        },
+        TIOCGPTPEER => {
+            printer.write(b"...")?;
+            return Ok(true)
+        },
+        _ => return Ok(false),
+    }
+    printer.write_number_as_pointer(value)?;
+    Ok(true)
 }
-fn write_ioctl_arg_nopeek(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error> {
-    printer.try_write_enum(value as u32, &TERMIOS_REQ)
+fn write_ioctl_arg_nopeek(printer: &Printer, req: u64, value: u64) -> std::result::Result<bool, std::io::Error> {
+    match req as u32 {
+        v if (v >= TCGETS && v <= TCSBRKP) || ( v >= TIOCSBRK && v<= TIOCGSID) => {
+            printer.write(b"...")?;
+            return Ok(true)
+        },
+        TCGETS2 => { },
+        v if (v >= TCSETS2 && v <= TCSETSF2) => { },
+        TIOCGPTN => { },
+        TIOCSPTLCK | TIOCSIG => { },
+        TIOCGDEV | TIOCGPKT | TIOCGPTLCK | TIOCGEXCL => { },
+        TIOCGPTPEER => {
+            printer.write(b"...")?;
+            return Ok(true)
+        },
+        _ => return Ok(false),
+    }
+    printer.write_number_as_pointer(value)?;
+    Ok(true)
+}
+
+impl crate::Print for termios2 {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+        printer.write(b".c_iflag = ")?; printer.write_number(self.c_iflag, &FORMATS::HEX)?;
+        printer.write(b", .c_oflag = ")?; printer.write_number(self.c_oflag, &FORMATS::HEX)?;
+        printer.write(b", .c_cflag = ")?; printer.write_number(self.c_cflag, &FORMATS::HEX)?;
+        printer.write(b", .c_lflag = ")?; printer.write_number(self.c_lflag, &FORMATS::HEX)?;
+        printer.write(b", .c_line = ")?; printer.write_number(self.c_line, &FORMATS::HEX)?;
+        printer.write(b", .c_cc = ")?; printer.write_as_hex(&self.c_cc)?;
+        printer.write(b", .c_ipeed = ")?; printer.write_number(self.c_ispeed, &FORMATS::DEC)?;
+        printer.write(b", .c_opeed = ")?; printer.write_number(self.c_ospeed, &FORMATS::DEC)?;
+        Ok(())
+    }
+}
+
+impl crate::Print for termios {
+    fn print(&self, printer: &crate::Printer, _: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+        printer.write(b".c_iflag = ")?; printer.write_number(self.c_iflag, &FORMATS::HEX)?;
+        printer.write(b", .c_oflag = ")?; printer.write_number(self.c_oflag, &FORMATS::HEX)?;
+        printer.write(b", .c_cflag = ")?; printer.write_number(self.c_cflag, &FORMATS::HEX)?;
+        printer.write(b", .c_lflag = ")?; printer.write_number(self.c_lflag, &FORMATS::HEX)?;
+        printer.write(b", .c_line = ")?; printer.write_number(self.c_line, &FORMATS::HEX)?;
+        printer.write(b", .c_cc = ")?; printer.write_as_hex(&self.c_cc)?;
+        Ok(())
+    }
 }

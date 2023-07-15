@@ -47,15 +47,15 @@ const fn _IOWR<const TYPE: u32, const NR: u32, SIZE>() -> u32 { IOWR!(TYPE, NR, 
 
 pub struct WriteIoctl {
     write_ioctl_request: fn(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error>,
-    write_ioctl_arg: fn(printer: &Printer, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<bool, std::io::Error>,
-    write_ioctl_arg_nopeek: fn(printer: &Printer, value: u64) -> std::result::Result<bool, std::io::Error>,
+    write_ioctl_arg: fn(printer: &Printer, req: u64, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<bool, std::io::Error>,
+    write_ioctl_arg_nopeek: fn(printer: &Printer, req: u64, value: u64) -> std::result::Result<bool, std::io::Error>,
 }
 
 const WRITER: [WriteIoctl; 1] = [termios::TERMIOS];
 
 pub fn write_ioctl_request(printer: &Printer, value: u64) -> std::result::Result<(), std::io::Error> {
-    for e in WRITER {
-        if (e.write_ioctl_request)(printer, value)? {
+    for i in WRITER {
+        if (i.write_ioctl_request)(printer, value)? {
             return Ok(())
         }
     }
@@ -63,9 +63,9 @@ pub fn write_ioctl_request(printer: &Printer, value: u64) -> std::result::Result
     Ok(())
 }
 
-pub fn write_ioctl_arg(printer: &Printer, value: u64, _pid: types::Pid, _e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
-    for e in WRITER {
-        if (e.write_ioctl_arg)(printer, value, _pid, _e)? {
+pub fn write_ioctl_arg(printer: &Printer, value: u64, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    for i in WRITER {
+        if (i.write_ioctl_arg)(printer, e.argn(peek::Arg::TWO), value, pid, e)? {
             return Ok(())
         }
     }
@@ -73,9 +73,9 @@ pub fn write_ioctl_arg(printer: &Printer, value: u64, _pid: types::Pid, _e: &pee
     Ok(())
 }
 
-pub fn write_ioctl_arg_nopeek(printer: &Printer, value: u64) -> std::result::Result<(), std::io::Error> {
-    for e in WRITER {
-        if (e.write_ioctl_arg_nopeek)(printer, value)? {
+pub fn write_ioctl_arg_nopeek(printer: &Printer, value: u64, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+    for i in WRITER {
+        if (i.write_ioctl_arg_nopeek)(printer, e.argn(peek::Arg::TWO), value)? {
             return Ok(())
         }
     }

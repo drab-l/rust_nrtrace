@@ -61,17 +61,7 @@ macro_rules! print_bit_pointer {
 
 macro_rules! peek_print_number {
     ($self:ident, $addr:expr, $type:ty, $fmt:ident, $pid:ident, $summery:expr) => {
-        if $addr == 0 {
-            $self.write(b"NULL")
-        } else  {
-            if let Ok(value) = peek::peek_data::<$type>($pid, $addr) {
-                $self.write(b"{")?;
-                $self.write_number(value, $fmt)?;
-                $self.write(b"}")
-            } else {
-                print_bit_pointer!($self, $addr, $summery)
-            }
-        }
+        $self.peek_write_number::<$type>($addr, $fmt, $pid, $summery)
     };
 }
 
@@ -291,6 +281,20 @@ impl Printer {
             self.write(b"}")?;
         }
         Ok(())
+    }
+
+    fn peek_write_number<T: number::ToString>(&self, addr: types::Ptr, fmt: &FORMATS, pid: types::Pid, summery: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
+        if addr == 0 {
+            self.write(b"NULL")
+        } else  {
+            if let Ok(value) = peek::peek_data::<T>(pid, addr) {
+                self.write(b"{")?;
+                self.write_number(value, fmt)?;
+                self.write(b"}")
+            } else {
+                print_bit_pointer!(self, addr, summery)
+            }
+        }
     }
 
     fn peek_write(&self, addr: types::Ptr, size: usize, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
@@ -587,7 +591,7 @@ impl Printer {
             TYPES::EpolleventArrayPtrLenArgR => { peek_write_struct_array!(self, value, epoll::epoll_event, e.return_value()?, pid, e) },
             TYPES::FdFlag => { open::write_fd_flags(self, value, e) },
             TYPES::IoctlReqest => { ioctl::write_ioctl_request(self, value) },
-            TYPES::IoctlArgNoPeek => { ioctl::write_ioctl_arg_nopeek(self, value) },
+            TYPES::IoctlArgNoPeek => { ioctl::write_ioctl_arg_nopeek(self, value, e) },
             TYPES::IoctlArg => { ioctl::write_ioctl_arg(self, value, pid, e) },
             TYPES::IovecPtrLenArg3 => { peek_write_bit_struct_array!(self, value, iovec::iovec, iovec::compat_iovec, e.argn(peek::Arg::THR), pid, e) },
             TYPES::IovecPtrLenArg3BufLenArgR => {
