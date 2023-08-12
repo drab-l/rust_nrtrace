@@ -52,8 +52,8 @@ struct sockaddr_nl {
 struct sockaddr_vm {
     svm_family: SockFamily,
     svm_reserved1: u16,
-    svm_port: u16,
-    svm_cid: u16,
+    svm_port: u32,
+    svm_cid: u32,
 }
 
 unsafe fn strlen(base: *const u8) -> usize {
