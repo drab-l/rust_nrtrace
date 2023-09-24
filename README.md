@@ -3,7 +3,7 @@ Simple systemcall tracer implemented in rust.
 
 It is like the strace implemented in rust, but the output format is different from strace.
 
-Support architectures are x86, x86_64, arm and aarch64. But, for some systemcalls, argument parsing is not implemented and arguments are only displayed in hexadecimal.
+Supported architectures are x86, x86_64, arm and aarch64. But, for some systemcalls, argument parsing is not implemented and arguments are only displayed in hexadecimal.
 
 Usage:
 
