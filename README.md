@@ -5,6 +5,10 @@ It is like the strace implemented in rust, but the output format is different fr
 
 Supported architectures are x86, x86_64, arm and aarch64. But, for some systemcalls, argument parsing is not implemented and arguments are only displayed in hexadecimal.
 
+The original is the following C implementation.Therefore, the constraints on the ptrace factor are similar.
+
+https://github.com/drab-l/c_nrtrace
+
 Usage:
 
     nrtrace [Option] [CMD [ARGs...]]
