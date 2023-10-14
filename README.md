@@ -1,4 +1,4 @@
-# nrtrace
+# [nrtrace](https://github.com/drab-l/rust_nrtrace)
 Simple systemcall tracer implemented in rust.
 
 It is like the strace implemented in rust, but the output format is different from strace.
@@ -7,7 +7,7 @@ Supported architectures are x86, x86_64, arm and aarch64. But, for some systemca
 
 The original is the following C implementation.Therefore, the constraints on the ptrace factor are similar.
 
-https://github.com/drab-l/c_nrtrace
+[c_nrtrace](https://github.com/drab-l/c_nrtrace)
 
 Usage:
 
