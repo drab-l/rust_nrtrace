@@ -22,9 +22,6 @@ pub enum TYPES {
 }
 
 impl TYPES {
-    pub fn is_need_peek(&self) -> bool {
-        *self > PTR
-    }
     pub fn nopeek_type(&self) -> &Self {
         const PTR_: TYPES = PTR;
         const IOC_: TYPES = IoctlArgNoPeek;
@@ -75,7 +72,6 @@ pub struct Config {
 
 impl SyscallPrintConf {
     fn new(conf: CONF, print: &'static [SyscallPrintInfoSet]) -> Self { SyscallPrintConf{conf, print} }
-    pub fn is_print(&self) -> bool { self.conf == CONF::PRINT }
     pub fn is_simple(&self) -> bool { self.conf == CONF::SIMPLE }
     pub fn is_skip(&self) -> bool { self.conf == CONF::SKIP }
     pub fn is_nopeek(&self) -> bool { self.conf == CONF::NOPEEK }
