@@ -272,6 +272,7 @@ define_syscall_print_info!(MADIVISE, INTDEC, PTR, INTDEC, MadviseAdvice);
 define_syscall_print_info!(MKDIR, INTDEC, StrPtr, INTOCT);
 define_syscall_print_info!(MKDIRAT, INTDEC, DirFd, StrPtr, INTOCT);
 define_syscall_print_info!(MMAP, PTR, PTR, USIZEDEC, MmapProt, MmapFlag, INTDEC, OFFDEC);
+define_syscall_print_info!(MOUNT, INTDEC, StrPtr, StrPtr, StrPtr, ULONGDEC, StrPtr); /* TODO mount flag */
 define_syscall_print_info!(MPROTECT, INTDEC, PTR, USIZEDEC, MmapProt);
 define_syscall_print_info!(MUNMAP, INTDEC, PTR, USIZEDEC);
 define_syscall_print_info!(NANOSLEEP, INTDEC, TimespecPtr, PTR);
@@ -318,6 +319,7 @@ define_syscall_print_info!(STATFS64, INTDEC, StrPtr, USIZEDEC, PTR);
 define_syscall_print_info!(STATX, INTDEC, INTDEC, StrPtr, INTDEC, INTDEC, PTR);
 define_syscall_print_info!(SYSINFO, INTDEC, PTR);
 define_syscall_print_info!(UGETRLIMIT, INTDEC, RlimitResource, PTR);
+define_syscall_print_info!(UMOUNT2, INTDEC, StrPtr, INTDEC); /* TODO umount flag */
 define_syscall_print_info!(UNAME, INTDEC, PTR);
 define_syscall_print_info!(WAIT4, PID, PID, PTR, INTDEC, PTR);
 define_syscall_print_info!(WRITE, SSIZEDEC, INTDEC, AsciiOrHexPtrLenArg3, USIZEDEC);
@@ -437,6 +439,7 @@ impl SyscallPrinter for NR {
             NR::sys_mkdir => &MKDIR,
             NR::sys_mkdirat => &MKDIRAT,
             NR::sys_mmap | NR::sys_mmap2 => &MMAP,
+            NR::sys_mount => &MOUNT,
             NR::sys_mprotect => &MPROTECT,
             NR::sys_munmap => &MUNMAP,
             NR::sys_nanosleep => &NANOSLEEP,
@@ -482,6 +485,7 @@ impl SyscallPrinter for NR {
             NR::sys_sysinfo => &SYSINFO,
             NR::sys_ugetrlimit => &UGETRLIMIT,
             NR::sys_umask => &SYS_ALIAS_INTDEC_INTDEC_INTDEC,
+            NR::sys_umount2 => &UMOUNT2,
             NR::sys_uname => &UNAME,
             NR::sys_wait4 => &WAIT4,
             NR::sys_write => &WRITE,
