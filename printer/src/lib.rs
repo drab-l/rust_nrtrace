@@ -265,9 +265,13 @@ impl Printer {
     }
 
     fn peek_write_maybe_ascii_str(&self, addr: types::Ptr, size: usize, pid: types::Pid, e: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
-        self.write(b"\"")?;
-        self.peek_write_maybe_ascii(addr, size, pid, e)?;
-        self.write(b"\"")?;
+        if addr == 0 {
+            self.write(b"NULL")?;
+        } else {
+            self.write(b"\"")?;
+            self.peek_write_maybe_ascii(addr, size, pid, e)?;
+            self.write(b"\"")?;
+        }
         Ok(())
     }
 
@@ -374,9 +378,13 @@ impl Printer {
     }
 
     fn peek_write_str_null_sentinel(&self, addr: types::Ptr, pid: types::Pid, _: &peek::SyscallSummery) -> std::result::Result<(), std::io::Error> {
-        self.write(b"\"")?;
-        self.write_graph_ascii_or_hex(&peek::peek_until_null(pid, addr)?)?;
-        self.write(b"\"")?;
+        if addr == 0 {
+            self.write(b"NULL")?;
+        } else {
+            self.write(b"\"")?;
+            self.write_graph_ascii_or_hex(&peek::peek_until_null(pid, addr)?)?;
+            self.write(b"\"")?;
+        }
         Ok(())
     }
 
