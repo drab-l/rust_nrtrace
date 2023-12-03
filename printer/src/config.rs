@@ -17,7 +17,7 @@ pub enum TYPES {
     PTR,
     IntPtr(FORMATS), I64Ptr(FORMATS), StrPtr, StrPtrLenArgR, ArgsPtr, IntArrayPtrLen2,
     EpolleventPtr, EpolleventArrayPtrLenArgR, FdsetPtrArg1, IovecPtrLenArg3, IovecPtrLenArg3BufLenArgR, Linuxdirent64PtrLenArgR, MsghdrPtr, MsghdrPtrBufLenArgR,
-    OldoldutsnamePtr, OldutsnamePtr, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, SocketcallArgPtr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimexPtr, TimezonePtr, UtsnamePtr,
+    OldoldutsnamePtr, OldutsnamePtr, PollfdPtrLenArg2, Rlimit64Ptr, RlimitPtr, SockaddrPtrLenArg3, SockaddrPtrLenArg3Ptr, SocketcallArgPtr, Statfs64Ptr, StatfsPtr, StatPtr, StatxPtr, SysinfoPtr, TimespecPtr, TimevalPtr, TimexPtr, TimezonePtr, UtsnamePtr,
     AsciiOrHexPtrLenArg3, AsciiOrHexPtrLenArgR,
 }
 
@@ -233,7 +233,7 @@ define_syscall_print_info!(CREATE_MODULE, PTR, StrPtr, USIZEDEC);
 define_syscall_print_info!(DELETE_MODULE, INTDEC, StrPtr, INTDEC);
 define_syscall_print_info!(DUP3, INTDEC, INTDEC, INTDEC, OpenFlag);
 define_syscall_print_info!(EPOLL_CTL, INTDEC, INTDEC, EpollctlOp, INTDEC, EpolleventPtr);
-define_syscall_print_info!(EPOLL_PWAIT, INTDEC, INTDEC, PTR, INTDEC, INTDEC);
+define_syscall_print_info!(EPOLL_PWAIT, INTDEC, INTDEC, PTR, INTDEC, INTDEC, PTR, USIZEDEC);
 define_syscall_print_info!(EPOLL_WAIT, INTDEC, INTDEC, PTR, INTDEC, INTDEC, PTR);
 define_syscall_print_info!(EXECVE, INTDEC, StrPtr, ArgsPtr, ArgsPtr);
 define_syscall_print_info!(EXECVEAT, INTDEC, DirFd, StrPtr, ArgsPtr, ArgsPtr, AtFlag);
@@ -284,6 +284,8 @@ define_syscall_print_info!(OPENAT, INTDEC, DirFd, StrPtr, OpenFlag, INTOCT);
 define_syscall_print_info!(OPENAT2, INTDEC, DirFd, StrPtr, PTR, SSIZEDEC);
 define_syscall_print_info!(PIPE, INTDEC, PTR);
 define_syscall_print_info!(PIPE2, INTDEC, PTR, FdFlag);
+define_syscall_print_info!(POLL, INTDEC, PollfdPtrLenArg2, UINTDEC, INTDEC);
+define_syscall_print_info!(PPOLL, INTDEC, PollfdPtrLenArg2, UINTDEC, TimespecPtr, PTR, SSIZEDEC);
 define_syscall_print_info!(PRLIMIT64, INTDEC, PID, RlimitResource, Rlimit64Ptr, PTR);
 //define_syscall_print_info!(PREAD, SSIZEDEC, UINTDEC, PTR, USIZEDEC, OFFDEC);
 define_syscall_print_info!(PREAD64, SSIZEDEC, UINTDEC, PTR, USIZEDEC, LOFFDEC);
@@ -341,6 +343,7 @@ define_syscall_print_info_for_ret_args!(RET_NEWFSTATAT, NONE, NONE, StatPtr);
 define_syscall_print_info_for_ret_args!(RET_OLDOLDUNAME, OldoldutsnamePtr);
 define_syscall_print_info_for_ret_args!(RET_OLDUNAME, OldutsnamePtr);
 define_syscall_print_info_for_ret_args!(RET_PIPE, IntArrayPtrLen2);
+define_syscall_print_info_for_ret_args!(RET_POLL, PollfdPtrLenArg2);
 define_syscall_print_info_for_ret_args!(RET_READ, NONE, AsciiOrHexPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_READLINK, NONE, StrPtrLenArgR);
 define_syscall_print_info_for_ret_args!(RET_READLINKAT, NONE, NONE, StrPtrLenArgR);
@@ -451,6 +454,8 @@ impl SyscallPrinter for NR {
             NR::sys_openat2 => &OPENAT2,
             NR::sys_pipe => &PIPE,
             NR::sys_pipe2 => &PIPE2,
+            NR::sys_poll => &POLL,
+            NR::sys_ppoll => &PPOLL,
             NR::sys_pread64 => &PREAD64,
             NR::sys_preadv => &PREADV,
             NR::sys_preadv2 => &PREADV2,
@@ -511,6 +516,7 @@ impl SyscallPrinter for NR {
             NR::sys_olduname => &RET_OLDUNAME,
             NR::sys_oldolduname => &RET_OLDOLDUNAME,
             NR::sys_pipe | NR::sys_pipe2 => &RET_PIPE,
+            NR::sys_poll | NR::sys_ppoll => &RET_POLL,
             NR::sys_prlimit64 => &RET_PRLIMIT64,
             NR::sys_pread64 | NR::sys_read => &RET_READ,
             NR::sys_readlink => &RET_READLINK,

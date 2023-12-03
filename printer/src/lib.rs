@@ -21,6 +21,7 @@ mod errno;
 mod time;
 mod sys;
 mod ioctl;
+mod poll;
 
 use number::ToString;
 use config::{TYPES, FORMATS};
@@ -356,6 +357,10 @@ impl Printer {
     where
         T: number::ToString + From<u8> + Copy + PartialEq + std::ops::BitAnd<Output = T> + std::ops::BitXor<Output = T>,
     {
+        if value == T::from(0 as u8) {
+            self.write(b"0")?;
+            return Ok(())
+        }
         let mut value = value;
         let mut tail = false;
         for (v,n) in tbl.iter() {
@@ -623,6 +628,7 @@ impl Printer {
             TYPES::OldoldutsnamePtr => { peek_write_struct!(self, value, uname::oldold_utsname, pid, e) },
             TYPES::OldutsnamePtr => { peek_write_struct!(self, value, uname::old_utsname, pid, e) },
             TYPES::OpenFlag => { open::write_open_flags(self, value, e) },
+            TYPES::PollfdPtrLenArg2 => { peek_write_struct_array!(self, value, poll::pollfd, e.argn(peek::Arg::TWO), pid, e) },
             TYPES::RenameFlag => { open::write_rename_flag(self, value, e) },
             TYPES::RlimitResource => { rlimit::write_resource(self, value, e) },
             TYPES::Rlimit64Ptr => { peek_write_struct!(self, value, rlimit::rlimit64, pid, e) },
